@@ -1,0 +1,8 @@
+{
+  "codeQuizExplainer.aiProvider": "openai",
+  "codeQuizExplainer.openaiApiKey": "sk-your-api-key-here",
+  "codeQuizExplainer.openaiModel": "gpt-3.5-turbo",
+  "codeQuizExplainer.quizDifficulty": "intermediate",
+  "codeQuizExplainer.questionCount": 5,
+  "codeQuizExplainer.explanationDetail": "detailed"
+}
