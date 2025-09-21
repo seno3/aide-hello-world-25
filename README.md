@@ -1,182 +1,273 @@
-# Code Quiz & Explainer VS Code Extension
+# 🎓 Teach-Before-Apply (TBA) Extension
 
-A VS Code extension that helps you learn and understand code by quizzing you on pasted code and providing detailed explanations of every part of your code.
+A VS Code extension that proactively teaches before code is inserted, helping developers learn while they code.
 
 ## Features
 
-### 🧠 Interactive Code Quizzes
-- **🤖 AI-Powered Questions**: GPT-4 generates intelligent, context-aware quiz questions
-- **Automatic Quiz Activation**: When you paste code into the editor, get prompted to take a quiz about it
-- **Manual Quiz Command**: Use "Quiz Me on This Code" from the Command Palette or `Ctrl+Shift+Q` (Windows/Linux) / `Cmd+Shift+Q` (Mac)
-- **Multiple Question Types**: Both multiple-choice and open-ended questions
-- **Smart Code Analysis**: Automatically identifies functions, variables, classes, and control flow statements
-- **Progress Tracking**: Visual progress bar and scoring system
-- **Difficulty Levels**: Beginner, intermediate, and advanced quiz modes
+### 🧠 Core Learning System
+- **Intercepts** paste/completion/save events
+- **Generates** compact learning cards with explanations
+- **Requires** explicit confirmation before applying changes
+- **Provides** micro-quizzes to test understanding
+- **Logs** all learning events locally
 
-### 📚 Detailed Code Explanations
-- **🤖 AI-Generated Explanations**: Deep, contextual code analysis using advanced language models
-- **Line-by-Line Breakdown**: Get explanations for every line of code
-- **Component Analysis**: Understand functions, variables, classes, and control structures
-- **Visual Code Summary**: See statistics about your code's complexity and structure
-- **Interactive Interface**: Click on lines to highlight them in the editor (planned feature)
-- **Multiple Detail Levels**: Basic, detailed, and expert explanation modes
+### 📚 Personal Textbook Generator
+- **Tracks** every explanation, quiz, and choice
+- **Exports** daily learnings to Markdown and PDF
+- **Generates** comprehensive learning reports
+- **Command**: `TBA: Export Today's Learnings`
+
+### 🧬 Learning DNA Spiral / Mind Map
+- **Visualizes** concept relationships with D3.js
+- **Updates** in real-time as you learn
+- **Shows** concept frequency and connections
+- **Interactive** node exploration
+
+### 🐉 Boss Fight Mode
+- **Triggers** every 5 accepted changes
+- **Injects** buggy code snippets to fix
+- **Tests** your understanding with challenges
+- **Rewards** success with animations
+- **Command**: `TBA: Toggle Boss Fight Mode`
 
 ## Installation
 
-### From Source (Development)
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd tba-overlay
+   ```
 
-1. **Clone or download** this extension to your local machine
 2. **Install dependencies**:
    ```bash
    npm install
    ```
-3. **Compile the TypeScript**:
+
+3. **Compile TypeScript**:
    ```bash
    npm run compile
    ```
-4. **Open in VS Code**:
-   - Open the extension folder in VS Code
-   - Press `F5` to launch a new Extension Development Host window
-   - The extension will be active in the new window
 
-5. **🤖 Enable AI Features** (Optional but Recommended):
-   - See [AI_SETUP.md](AI_SETUP.md) for detailed instructions
-   - **IMPORTANT**: Never commit API keys to version control!
-   - Copy `.vscode/settings.example.json` to `.vscode/settings.json` and add your API key
-   - Without AI: Extension works with built-in fallback logic
-
-### Future: From VS Code Marketplace
-*This extension will be available on the VS Code Marketplace once published.*
+4. **Launch Extension Development Host**:
+   - Press `F5` in VS Code
+   - Or use `Ctrl+Shift+P` → "Developer: Reload Window"
 
 ## Usage
 
-### Taking a Quiz on Code
+### Getting Started
 
-#### Method 1: Automatic (Paste Detection)
-1. Copy some code from anywhere
-2. Paste it into a VS Code editor
-3. When prompted, click "Quiz Me!" to start an interactive quiz about the pasted code
+1. **Open a supported file** (JavaScript, TypeScript, Python, SQL, etc.)
+2. **Start coding** - the extension will detect changes
+3. **Learning cards appear** automatically when you make significant changes
+4. **Answer quizzes** to test your understanding
+5. **Apply or skip** changes based on your learning
 
-#### Method 2: Manual Command
-1. Select code in the editor (or have a file open)
-2. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-3. Type "Quiz Me on This Code" and press Enter
-4. Or use the keyboard shortcut: `Ctrl+Shift+Q` / `Cmd+Shift+Q`
+### Commands
 
-### Getting Code Explanations
+Access via Command Palette (`Ctrl+Shift+P`):
 
-1. Select code in the editor (or have a file open)
-2. Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-3. Type "Explain This Code" and press Enter
-4. View the detailed explanation in the side panel
+- **`TBA: Open Learning Panel`** - Opens the main learning interface
+- **`TBA: Export Today's Learnings`** - Generates your personal textbook
+- **`TBA: Toggle Boss Fight Mode`** - Enables/disables boss challenges
 
-## How It Works
+### Learning Cards
 
-### Code Analysis
-The extension analyzes your code to identify:
-- **Functions**: Function declarations and arrow functions
-- **Variables**: const, let, and var declarations
-- **Classes**: Class definitions and constructors
-- **Control Flow**: if statements, loops, switch statements
-- **Comments**: Documentation and inline comments
+Each learning card includes:
 
-### Quiz Generation
-Based on the analysis, the extension generates questions about:
-- Function names and purposes
-- Variable declarations and usage
-- Code structure and flow
-- Language-specific syntax
-- Overall code complexity
+- **🤔 Why?** - Explanation of the concept
+- **📝 Code Changes** - Visual diff of what changed
+- **🧠 Quick Check** - Multiple choice or fill-in-the-blank quiz
+- **🔄 Alternative Approaches** - Different ways to solve the problem
+- **✅ Apply/Skip** - Choose whether to apply the changes
 
-### Explanation Generation
-The explanation feature provides:
-- **Overview**: High-level summary of what the code does
-- **Statistics**: Line count, functions, variables, classes
-- **Line-by-Line**: Detailed explanation of each line
-- **Categorization**: Each line is categorized (declaration, assignment, control-flow, etc.)
-- **Importance Levels**: Visual indicators for critical vs. informational lines
+### Risk Assessment
+
+The extension automatically detects risky operations:
+
+- **🔴 High Risk**: Security-sensitive code, destructive operations
+- **🟡 Medium Risk**: Database operations, file system changes
+- **🟢 Low Risk**: Safe code changes
+
+### Boss Fights
+
+Every 5 accepted changes triggers a boss fight:
+
+1. **Buggy code** is presented
+2. **Test output** shows the failure
+3. **Fix the bug** in the provided textarea
+4. **Test your solution** against the challenge
+5. **Celebrate victory** with animations
 
 ## Supported Languages
 
-Currently optimized for:
-- **JavaScript** (including ES6+)
-- **TypeScript**
-- **Basic support** for other languages (Python, Java, C++)
+- JavaScript/TypeScript
+- Python
+- SQL
+- Java
+- C#
+- C++
+- Go
+- Rust
 
-*Note: Language detection is currently basic and will be enhanced in future versions.*
-
-## Extension Structure
-
-The extension is built with a modular architecture:
+## Architecture
 
 ```
 src/
-├── extension.ts       # Main activation and command registration
-├── quizGenerator.ts   # Code analysis and quiz generation
-├── codeExplainer.ts   # Line-by-line code explanation
-└── uiManager.ts       # WebView UI management
+├── extension.ts              # Main extension entry point
+├── core/
+│   ├── ai.ts                # Mock AI service for teaching cards
+│   ├── risk.ts              # Risk classification system
+│   ├── boss.ts              # Boss fight management
+│   └── telemetry.ts         # Type definitions
+├── storage/
+│   ├── logger.ts            # JSONL learning history
+│   └── export.ts            # Markdown/PDF export
+├── client/
+│   ├── panel.html           # Webview interface
+│   ├── panel.ts             # Panel logic
+│   ├── visualizer.ts        # D3.js visualization
+│   └── styles.css           # Styling
+└── vscode/
+    └── commands.ts          # Command registration
 ```
 
-## Future Enhancements
+## Configuration
 
-### Planned Features
-- **AI Integration**: Replace mock quiz/explanation generation with AI models
-- **Advanced Parsing**: Use AST (Abstract Syntax Tree) for better code analysis
-- **More Languages**: Enhanced support for Python, Java, C++, Go, Rust, etc.
-- **Difficulty Levels**: Beginner, intermediate, and advanced quiz modes
-- **Learning Tracks**: Structured learning paths for different concepts
-- **Progress Persistence**: Save quiz results and learning progress
-- **Code Highlighting**: Highlight corresponding code lines from explanations
+### Learning History
 
-### AI Integration Points
-The extension is structured to easily integrate with AI services:
+Learning events are stored in `~/.tba/history.jsonl`:
 
-1. **Quiz Generation**: Replace `QuizGenerator.generateQuiz()` with AI calls
-2. **Code Explanation**: Replace `CodeExplainer.explainCode()` with AI analysis
-3. **Smart Parsing**: Enhance code component detection with AI
-4. **Personalized Learning**: Use AI to adapt quiz difficulty to user level
+```json
+{
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "file": "/path/to/file.js",
+  "mode": "explain",
+  "risk": "low",
+  "concept_tags": ["async-await", "error-handling"],
+  "quiz_correct": true,
+  "applied": true,
+  "latency_ms": 1250
+}
+```
+
+### Export Options
+
+The Personal Textbook Generator supports:
+
+- **Markdown export** - Always available
+- **PDF export** - Requires puppeteer (included)
+- **Date filtering** - Today's learnings or all time
+- **Concept statistics** - Learning progress tracking
 
 ## Development
 
 ### Building
-```bash
-npm run compile
-```
 
-### Watching for Changes
 ```bash
+# Install dependencies
+npm install
+
+# Compile TypeScript
+npm run compile
+
+# Watch for changes
 npm run watch
 ```
 
 ### Testing
-1. Open the project in VS Code
-2. Press `F5` to launch Extension Development Host
-3. Test the commands in the new window
+
+1. **Open the project** in VS Code
+2. **Press F5** to launch Extension Development Host
+3. **Open a test file** with supported language
+4. **Make code changes** to trigger learning cards
+5. **Test all features**:
+   - Learning cards
+   - Quizzes
+   - Boss fights
+   - Export functionality
+   - Learning visualizer
+
+### Mock Data
+
+The extension includes comprehensive mock teaching cards for:
+
+- **Debouncing** - Performance optimization
+- **SQL Injection** - Security best practices
+- **Async/Await** - Asynchronous programming
+- **React Hooks** - Modern React patterns
+- **Error Handling** - Robust code practices
 
 ## Contributing
 
-This extension is designed to be easily extensible. Key areas for contribution:
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Make your changes**
+4. **Test thoroughly**
+5. **Submit a pull request**
 
-1. **Enhanced Code Parsing**: Improve language detection and AST parsing
-2. **UI Improvements**: Better WebView designs and interactions
-3. **Question Templates**: More diverse quiz question types
-4. **Language Support**: Add support for more programming languages
-5. **AI Integration**: Connect with OpenAI, Anthropic, or other AI services
+## Roadmap
+
+### Phase 1 (Current)
+- ✅ Mock AI teaching cards
+- ✅ Risk classification
+- ✅ Boss fight challenges
+- ✅ Learning history logging
+- ✅ Personal textbook export
+- ✅ D3.js visualization
+
+### Phase 2 (Future)
+- 🔄 Real LLM integration
+- 🔄 Custom learning paths
+- 🔄 Team learning analytics
+- 🔄 Integration with popular frameworks
+- 🔄 Advanced code analysis
+
+### Phase 3 (Advanced)
+- 🔄 AI-powered code suggestions
+- 🔄 Personalized learning recommendations
+- 🔄 Integration with learning platforms
+- 🔄 Collaborative learning features
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Learning cards not appearing**:
+   - Check if the file language is supported
+   - Ensure changes are significant (>50 characters)
+   - Verify extension is activated
+
+2. **Export not working**:
+   - Check `~/.tba/` directory permissions
+   - Ensure puppeteer is installed
+   - Try Markdown-only export
+
+3. **Boss fights not triggering**:
+   - Verify Boss Fight Mode is enabled
+   - Check that you've applied 5 changes
+   - Reset counter if needed
+
+### Debug Mode
+
+Enable debug logging:
+
+1. Open VS Code Developer Tools (`Help` → `Toggle Developer Tools`)
+2. Check Console for TBA extension logs
+3. Look for error messages and stack traces
 
 ## License
 
-MIT License - feel free to use and modify as needed.
+MIT License - see LICENSE file for details.
 
-## Support
+## Acknowledgments
 
-For issues, feature requests, or questions:
-1. Check the existing issues in the repository
-2. Create a new issue with detailed information
-3. Include code samples when reporting bugs
+- **D3.js** for visualization capabilities
+- **VS Code Extension API** for integration
+- **Puppeteer** for PDF generation
+- **TypeScript** for type safety
 
 ---
 
-**Happy Learning!** 🚀
+**Happy Learning! 🎓**
 
-*This extension helps you learn by doing - the best way to understand code is to actively engage with it through quizzes and explanations.*
-
+Start coding and let TBA help you become a better developer through continuous learning and understanding.

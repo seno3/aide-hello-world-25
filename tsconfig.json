@@ -9,11 +9,11 @@
     ],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true
+    "strict": false,
+    "noImplicitAny": false
   },
   "exclude": [
     "node_modules",
     ".vscode-test"
   ]
 }
-

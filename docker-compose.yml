@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  tba-extension:
+    build: .
+    container_name: tba-extension-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run watch
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "3000:3000"

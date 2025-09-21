@@ -1,83 +1,67 @@
 {
-  "name": "code-quiz-explainer",
-  "displayName": "Code Quiz & Explainer",
-  "description": "Quiz yourself on pasted code and get detailed explanations",
+  "name": "tba-overlay",
+  "displayName": "Teach-Before-Apply (TBA)",
+  "description": "Proactively teaches before code is inserted",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.74.0"
   },
   "categories": [
-    "Education",
     "Other"
   ],
   "activationEvents": [
-    "onCommand:codeQuizExplainer.quizMe",
-    "onCommand:codeQuizExplainer.explainCode"
+    "onStartupFinished",
+    "onCommand:tba.openPanel",
+    "onCommand:tba.export",
+    "onCommand:tba.toggleBoss",
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:python",
+    "onLanguage:sql"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "codeQuizExplainer.quizMe",
-        "title": "Quiz Me on This Code"
+        "command": "tba.openPanel",
+        "title": "TBA: Open Learning Panel",
+        "category": "TBA"
       },
       {
-        "command": "codeQuizExplainer.explainCode",
-        "title": "Explain This Code"
-      }
-    ],
-    "keybindings": [
+        "command": "tba.export",
+        "title": "TBA: Export Today's Learnings",
+        "category": "TBA"
+      },
       {
-        "command": "codeQuizExplainer.quizMe",
-        "key": "ctrl+shift+q",
-        "mac": "cmd+shift+q",
-        "when": "editorTextFocus"
+        "command": "tba.toggleBoss",
+        "title": "TBA: Toggle Boss Fight Mode",
+        "category": "TBA"
+      },
+      {
+        "command": "tba.explainCode",
+        "title": "TBA: Explain Code",
+        "category": "TBA"
       }
     ],
-    "configuration": {
-      "title": "Code Quiz & Explainer",
-      "properties": {
-        "codeQuizExplainer.aiProvider": {
-          "type": "string",
-          "enum": ["openai", "anthropic", "local", "mock"],
-          "default": "mock",
-          "description": "AI provider to use for quiz and explanation generation"
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "tba.openPanel",
+          "when": "true"
         },
-        "codeQuizExplainer.openaiApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "OpenAI API key (can also be set via OPENAI_API_KEY environment variable)"
+        {
+          "command": "tba.export",
+          "when": "true"
         },
-        "codeQuizExplainer.openaiModel": {
-          "type": "string",
-          "default": "gpt-4",
-          "description": "OpenAI model to use (e.g., gpt-4, gpt-3.5-turbo)"
+        {
+          "command": "tba.toggleBoss",
+          "when": "true"
         },
-        "codeQuizExplainer.openaiBaseURL": {
-          "type": "string",
-          "default": "",
-          "description": "Custom OpenAI API base URL (optional, for compatible APIs)"
-        },
-        "codeQuizExplainer.quizDifficulty": {
-          "type": "string",
-          "enum": ["beginner", "intermediate", "advanced"],
-          "default": "intermediate",
-          "description": "Default difficulty level for generated quizzes"
-        },
-        "codeQuizExplainer.questionCount": {
-          "type": "number",
-          "default": 3,
-          "minimum": 1,
-          "maximum": 10,
-          "description": "Number of questions to generate per quiz"
-        },
-        "codeQuizExplainer.explanationDetail": {
-          "type": "string",
-          "enum": ["basic", "detailed", "expert"],
-          "default": "detailed",
-          "description": "Level of detail for code explanations"
+        {
+          "command": "tba.explainCode",
+          "when": "true"
         }
-      }
+      ]
     }
   },
   "scripts": {
@@ -91,8 +75,6 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "axios": "^1.12.2",
-    "dotenv": "^17.2.2",
-    "openai": "^5.22.0"
+    "puppeteer": "^21.0.0"
   }
 }

@@ -1,0 +1,40 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="fire" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ee5a24;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c23616;stop-opacity:1" />
+    </radialGradient>
+    <radialGradient id="victory" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#2ecc71;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#27ae60;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="90" fill="url(#victory)" opacity="0.8"/>
+  
+  <!-- Dragon head (defeated) -->
+  <ellipse cx="100" cy="80" rx="40" ry="25" fill="#e74c3c" opacity="0.7"/>
+  <circle cx="90" cy="75" r="3" fill="#2c3e50"/>
+  <circle cx="110" cy="75" r="3" fill="#2c3e50"/>
+  
+  <!-- Victory text -->
+  <text x="100" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">
+    BOSS DEFEATED!
+  </text>
+  
+  <!-- Celebration particles -->
+  <circle cx="50" cy="50" r="3" fill="#f39c12" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0;0.8" dur="1s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="150" cy="60" r="2" fill="#e67e22" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0;0.8" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="60" cy="140" r="2.5" fill="#f1c40f" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0;0.8" dur="0.8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="140" cy="150" r="2" fill="#e67e22" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0;0.8" dur="1.5s" repeatCount="indefinite"/>
+  </circle>
+</svg>

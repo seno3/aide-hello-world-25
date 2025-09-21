@@ -1,0 +1,30 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bookGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Book cover -->
+  <rect x="12" y="8" width="40" height="48" rx="2" fill="url(#bookGradient)"/>
+  
+  <!-- Book pages -->
+  <rect x="14" y="10" width="36" height="44" rx="1" fill="white" opacity="0.9"/>
+  
+  <!-- Text lines -->
+  <rect x="18" y="16" width="28" height="2" fill="#667eea" opacity="0.6"/>
+  <rect x="18" y="20" width="24" height="2" fill="#667eea" opacity="0.4"/>
+  <rect x="18" y="24" width="30" height="2" fill="#667eea" opacity="0.6"/>
+  <rect x="18" y="28" width="22" height="2" fill="#667eea" opacity="0.4"/>
+  
+  <!-- Lightbulb (learning) -->
+  <circle cx="32" cy="36" r="6" fill="#f39c12"/>
+  <rect x="30" y="42" width="4" height="3" fill="#e67e22"/>
+  <rect x="29" y="45" width="6" height="1" fill="#d35400"/>
+  
+  <!-- Sparkles -->
+  <path d="M20 12 L22 14 L20 16 L18 14 Z" fill="#f1c40f" opacity="0.8"/>
+  <path d="M44 20 L46 22 L44 24 L42 22 Z" fill="#f1c40f" opacity="0.6"/>
+  <path d="M16 40 L18 42 L16 44 L14 42 Z" fill="#f1c40f" opacity="0.7"/>
+</svg>
