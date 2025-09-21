@@ -24,6 +24,14 @@
       {
         "command": "codeQuizExplainer.explainCode",
         "title": "Explain This Code"
+      },
+      {
+        "command": "codeQuizExplainer.pokePaste",
+        "title": "Poke Paste (Learn Before You Paste)"
+      },
+      {
+        "command": "codeQuizExplainer.interceptPaste",
+        "title": "Intercept Paste (Internal)"
       }
     ],
     "keybindings": [
@@ -38,6 +46,12 @@
         "key": "ctrl+shift+e",
         "mac": "cmd+alt+e",
         "when": "editorTextFocus"
+      },
+      {
+        "command": "codeQuizExplainer.interceptPaste",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "editorTextFocus && config.codeQuizExplainer.poke"
       }
     ],
     "configuration": {
@@ -82,6 +96,11 @@
           "enum": ["basic", "detailed", "expert"],
           "default": "detailed",
           "description": "Level of detail for code explanations"
+        },
+        "codeQuizExplainer.poke": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable 'poke' mode: blocks pasting and prompts with explanation + quiz to help you learn before you paste"
         }
       }
     }

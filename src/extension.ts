@@ -85,6 +85,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Set up paste detection for automatic quiz activation
     setupPasteDetection(context, quizGenerator, uiManager);
 
+    // Set up poke feature (blocks pasting if enabled)
+    setupPokeFeature(context, quizGenerator, codeExplainer, uiManager);
+
     // Add commands to the context so they can be disposed when extension is deactivated
     context.subscriptions.push(quizCommand, explainCommand);
 }
@@ -138,6 +141,128 @@ function setupPasteDetection(
     });
 
     context.subscriptions.push(changeListener);
+}
+
+/**
+ * Sets up the "poke" feature that blocks pasting and prompts with explanation + quiz
+ */
+function setupPokeFeature(
+    context: vscode.ExtensionContext,
+    quizGenerator: QuizGenerator,
+    codeExplainer: CodeExplainer,
+    uiManager: UIManager
+) {
+    // Register a custom paste command that intercepts the default paste
+    const pokeCommand = vscode.commands.registerCommand('codeQuizExplainer.pokePaste', async () => {
+        const config = vscode.workspace.getConfiguration('codeQuizExplainer');
+        const pokeEnabled = config.get<boolean>('poke', false);
+        
+        if (!pokeEnabled) {
+            // If poke is disabled, just do normal paste
+            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+            return;
+        }
+
+        try {
+            // Get clipboard content
+            const clipboardText = await vscode.env.clipboard.readText();
+            
+            if (!clipboardText || clipboardText.trim().length < 30) {
+                // For short text, just paste normally
+                await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                return;
+            }
+
+            // Check if it looks like code (has typical code patterns)
+            const looksLikeCode = /[{}();=]/.test(clipboardText) || 
+                                  clipboardText.includes('\n') ||
+                                  /\b(function|class|const|let|var|if|for|while)\b/.test(clipboardText);
+
+            if (!looksLikeCode) {
+                // Not code, just paste normally
+                await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                return;
+            }
+
+            // Show poke modal with explanation and quiz options
+            const action = await vscode.window.showWarningMessage(
+                `🤔 Whoa there! You're about to paste ${clipboardText.length} characters of code. Let's learn about it first!`,
+                { modal: true },
+                'Explain First 📚',
+                'Quiz Me First 🧠', 
+                'Just Paste 📋'
+            );
+
+            switch (action) {
+                case 'Explain First 📚':
+                    try {
+                        const explanation = await codeExplainer.explainCode(clipboardText);
+                        await uiManager.showExplanationPanel(explanation, clipboardText);
+                        
+                        // After explanation, ask if they want to paste
+                        const pasteAfter = await vscode.window.showInformationMessage(
+                            'Now that you understand the code, ready to paste?',
+                            'Yes, Paste It! 📋',
+                            'Cancel'
+                        );
+                        
+                        if (pasteAfter === 'Yes, Paste It! 📋') {
+                            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                        }
+                    } catch (error) {
+                        vscode.window.showErrorMessage(`Error explaining code: ${error}`);
+                    }
+                    break;
+
+                case 'Quiz Me First 🧠':
+                    try {
+                        const quiz = await quizGenerator.generateQuiz(clipboardText);
+                        await uiManager.showQuizPanel(quiz, clipboardText);
+                        
+                        // After quiz, ask if they want to paste
+                        const pasteAfter = await vscode.window.showInformationMessage(
+                            'Great job on the quiz! Ready to paste the code?',
+                            'Yes, Paste It! 📋',
+                            'Cancel'
+                        );
+                        
+                        if (pasteAfter === 'Yes, Paste It! 📋') {
+                            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                        }
+                    } catch (error) {
+                        vscode.window.showErrorMessage(`Error generating quiz: ${error}`);
+                    }
+                    break;
+
+                case 'Just Paste 📋':
+                    await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                    break;
+
+                default:
+                    // User cancelled, don't paste
+                    break;
+            }
+
+        } catch (error) {
+            console.error('Poke feature error:', error);
+            // Fallback to normal paste
+            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+        }
+    });
+
+    // Register keybinding to override default paste when poke is enabled
+    const pasteKeybinding = vscode.commands.registerCommand('codeQuizExplainer.interceptPaste', async () => {
+        const config = vscode.workspace.getConfiguration('codeQuizExplainer');
+        const pokeEnabled = config.get<boolean>('poke', false);
+        
+        if (pokeEnabled) {
+            await vscode.commands.executeCommand('codeQuizExplainer.pokePaste');
+        } else {
+            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+        }
+    });
+
+    context.subscriptions.push(pokeCommand, pasteKeybinding);
 }
 
 /**
