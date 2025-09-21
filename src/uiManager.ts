@@ -314,6 +314,24 @@ export class UIManager {
                     </div>
                 </div>
 
+                <!-- Clarification Box (moved near top) -->
+                <div class="clarify-card glass-card">
+                    <div class="card-header">
+                        <span class="card-icon">💬</span>
+                        <h2>Ask for Clarification</h2>
+                    </div>
+                    <p class="overview-text">Have a follow-up question? Ask the AI for more detail.</p>
+                    <div class="clarify-inputs">
+                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Can you explain how the loop condition works?"></textarea>
+                        <button id="clarifyBtn" class="modern-btn primary-btn">
+                            <span class="btn-text">Clarify with AI</span>
+                            <div class="btn-loading"><div class="loading-spinner"></div></div>
+                            <div class="btn-ripple"></div>
+                        </button>
+                    </div>
+                    <div id="clarifyResults" class="clarify-results"></div>
+                </div>
+
                 <!-- Overview Card -->
                 <div class="overview-card glass-card slide-in">
                     <div class="card-header">
@@ -354,12 +372,6 @@ export class UIManager {
                             <span class="section-icon">🔍</span>
                             Line-by-Line Analysis
                         </h2>
-                        <div class="filter-tabs">
-                            <button class="filter-tab active" onclick="filterLines('all')">All</button>
-                            <button class="filter-tab" onclick="filterLines('high')">High Priority</button>
-                            <button class="filter-tab" onclick="filterLines('declaration')">Declarations</button>
-                            <button class="filter-tab" onclick="filterLines('control-flow')">Control Flow</button>
-                        </div>
                     </div>
 
                     <div class="line-explanations">
@@ -384,23 +396,7 @@ export class UIManager {
                     </div>
                 </div>
 
-                <!-- Clarification Box -->
-                <div class="clarify-card glass-card">
-                    <div class="card-header">
-                        <span class="card-icon">💬</span>
-                        <h2>Ask for Clarification</h2>
-                    </div>
-                    <p class="overview-text">Have a follow-up question? Ask the AI for more detail.</p>
-                    <div class="clarify-inputs">
-                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Can you explain how the loop condition works?"></textarea>
-                        <button id="clarifyBtn" class="modern-btn primary-btn">
-                            <span class="btn-text">Clarify with AI</span>
-                            <div class="btn-loading"><div class="loading-spinner"></div></div>
-                            <div class="btn-ripple"></div>
-                        </button>
-                    </div>
-                    <div id="clarifyResults" class="clarify-results"></div>
-                </div>
+                
             </div>
 
             <script>
@@ -1156,9 +1152,9 @@ export class UIManager {
             .explanation-header {
                 display: flex;
                 align-items: center;
-                gap: 20px;
-                padding: 40px;
-                margin-bottom: 30px;
+                gap: 16px;
+                padding: 28px;
+                margin-bottom: 20px;
                 text-align: left;
             }
 
@@ -1168,13 +1164,13 @@ export class UIManager {
             }
 
             .header-content h1 {
-                font-size: 2.5rem;
+                font-size: 2.1rem;
                 font-weight: 700;
                 background: var(--gradient-primary);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
-                margin-bottom: 10px;
+                margin-bottom: 6px;
             }
 
             .header-subtitle {
@@ -1183,43 +1179,43 @@ export class UIManager {
             }
 
             .overview-card {
-                padding: 30px;
-                margin-bottom: 30px;
+                padding: 22px;
+                margin-bottom: 20px;
             }
 
             .clarify-card {
-                padding: 30px;
-                margin-top: 30px;
+                padding: 22px;
+                margin-top: 10px;
             }
 
             .clarify-inputs {
                 display: flex;
-                gap: 12px;
+                gap: 10px;
                 align-items: flex-start;
-                margin-top: 12px;
+                margin-top: 10px;
                 flex-wrap: wrap;
             }
 
             .clarify-results {
-                margin-top: 16px;
+                margin-top: 12px;
                 display: flex;
                 flex-direction: column;
-                gap: 10px;
+                gap: 8px;
             }
 
             .clarify-item {
                 background: rgba(255, 255, 255, 0.05);
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 12px;
-                padding: 14px;
-                line-height: 1.6;
+                padding: 12px;
+                line-height: 1.5;
             }
 
             .card-header {
                 display: flex;
                 align-items: center;
                 gap: 15px;
-                margin-bottom: 20px;
+                margin-bottom: 12px;
             }
 
             .card-icon {
@@ -1227,13 +1223,13 @@ export class UIManager {
             }
 
             .card-header h2 {
-                font-size: 1.5rem;
+                font-size: 1.3rem;
                 font-weight: 600;
             }
 
             .overview-text {
-                font-size: 1.1rem;
-                line-height: 1.7;
+                font-size: 1rem;
+                line-height: 1.6;
                 opacity: 0.9;
             }
 
@@ -1241,12 +1237,12 @@ export class UIManager {
             .stats-dashboard {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-bottom: 40px;
+                gap: 16px;
+                margin-bottom: 24px;
             }
 
             .stat-card {
-                padding: 30px 20px;
+                padding: 22px 16px;
                 text-align: center;
                 animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
                 animation-delay: var(--delay, 0s);
@@ -1254,22 +1250,22 @@ export class UIManager {
             }
 
             .stat-icon {
-                font-size: 2.5rem;
-                margin-bottom: 15px;
+                font-size: 2rem;
+                margin-bottom: 10px;
             }
 
             .stat-number {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
                 font-weight: 800;
                 background: var(--gradient-primary);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
             }
 
             .stat-label {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
                 opacity: 0.8;
                 text-transform: uppercase;
                 letter-spacing: 1px;
@@ -1277,24 +1273,24 @@ export class UIManager {
 
             /* Line Explanations Section */
             .line-explanations-section {
-                margin-top: 40px;
+                margin-top: 20px;
             }
 
             .section-header {
-                padding: 30px;
-                margin-bottom: 20px;
+                padding: 20px;
+                margin-bottom: 12px;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 20px;
+                gap: 12px;
             }
 
             .section-header h2 {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                font-size: 1.8rem;
+                gap: 12px;
+                font-size: 1.4rem;
                 font-weight: 600;
             }
 
@@ -1333,11 +1329,11 @@ export class UIManager {
             .line-explanations {
                 display: flex;
                 flex-direction: column;
-                gap: 15px;
+                gap: 10px;
             }
 
             .line-explanation-card {
-                padding: 25px;
+                padding: 18px;
                 cursor: pointer;
                 position: relative;
                 overflow: hidden;
@@ -1353,13 +1349,13 @@ export class UIManager {
             .line-header {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                margin-bottom: 15px;
+                gap: 10px;
+                margin-bottom: 10px;
             }
 
             .line-number-badge {
-                width: 40px;
-                height: 40px;
+                width: 34px;
+                height: 34px;
                 background: var(--gradient-primary);
                 border-radius: 50%;
                 display: flex;
@@ -1367,7 +1363,7 @@ export class UIManager {
                 justify-content: center;
                 font-weight: 600;
                 color: white;
-                font-size: 0.9rem;
+                font-size: 0.85rem;
             }
 
             .category-badge {
@@ -1888,11 +1884,9 @@ export class UIManager {
     private getModernExplanationJavaScript(): string {
         return `
             const vscode = acquireVsCodeApi();
-            let currentFilter = 'all';
             
             document.addEventListener('DOMContentLoaded', function() {
                 animateStatsCounters();
-                setupFilterTabs();
                 setupIntersectionObserver();
                 setupClarifyBox();
             });
@@ -1916,36 +1910,6 @@ export class UIManager {
                 showNotification(\`Line \${lineNumber} highlighted in editor\`, 'info');
             }
             
-            function filterLines(filter) {
-                currentFilter = filter;
-                const cards = document.querySelectorAll('.line-explanation-card');
-                const tabs = document.querySelectorAll('.filter-tab');
-                
-                // Update active tab
-                tabs.forEach(tab => tab.classList.remove('active'));
-                document.querySelector(\`[onclick="filterLines('\${filter}')"]\`).classList.add('active');
-                
-                // Filter cards with animation
-                cards.forEach((card, index) => {
-                    const shouldShow = filter === 'all' || 
-                                     card.classList.contains(\`importance-\${filter}\`) ||
-                                     card.classList.contains(\`category-\${filter}\`);
-                    
-                    if (shouldShow) {
-                        card.style.display = 'block';
-                        setTimeout(() => {
-                            card.style.transform = 'translateX(0)';
-                            card.style.opacity = '1';
-                        }, index * 50);
-                    } else {
-                        card.style.transform = 'translateX(-50px)';
-                        card.style.opacity = '0';
-                        setTimeout(() => {
-                            card.style.display = 'none';
-                        }, 300);
-                    }
-                });
-            }
             
             function animateStatsCounters() {
                 const counters = document.querySelectorAll('.stat-number');
@@ -1962,16 +1926,6 @@ export class UIManager {
                             counter.textContent = Math.floor(current);
                         }
                     }, 30);
-                });
-            }
-            
-            function setupFilterTabs() {
-                const tabs = document.querySelectorAll('.filter-tab');
-                tabs.forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        const filter = this.getAttribute('onclick').match(/'([^']+)'/)[1];
-                        filterLines(filter);
-                    });
                 });
             }
             
