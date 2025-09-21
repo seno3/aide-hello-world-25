@@ -336,34 +336,29 @@ export class UIManager {
                     </div>
                     <p class="overview-text">Have follow-up questions about the overview? Ask for more detail or different angles.</p>
                     <div class="clarify-inputs">
-                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Why is the complexity marked as moderate? Can you compare two approaches?"></textarea>
+                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="Ask a follow-up... (Shift+Enter for newline)"></textarea>
                         <button id="clarifyBtn" class="modern-btn primary-btn">
                             <span class="btn-text">Ask AI</span>
                             <div class="btn-loading"><div class="loading-spinner"></div></div>
                             <div class="btn-ripple"></div>
                         </button>
                     </div>
-                    <div id="clarifyResults" class="clarify-results"></div>
+                    <div id="clarifyResults" class="clarify-results chat-list"></div>
                 </div>
 
-                <!-- Stats Dashboard -->
+                <!-- Stats Dashboard (LOC removed) -->
                 <div class="stats-dashboard">
                     <div class="stat-card glass-card" style="--delay: 0.1s">
-                        <div class="stat-icon">📝</div>
-                        <div class="stat-number" data-target="${selectedLineCount}">0</div>
-                        <div class="stat-label">Lines of Code</div>
-                    </div>
-                    <div class="stat-card glass-card" style="--delay: 0.2s">
                         <div class="stat-icon">⚡</div>
                         <div class="stat-number" data-target="${explanation.summary.functions.length}">0</div>
                         <div class="stat-label">Functions</div>
                     </div>
-                    <div class="stat-card glass-card" style="--delay: 0.3s">
+                    <div class="stat-card glass-card" style="--delay: 0.2s">
                         <div class="stat-icon">📦</div>
                         <div class="stat-number" data-target="${explanation.summary.variables.length}">0</div>
                         <div class="stat-label">Variables</div>
                     </div>
-                    <div class="stat-card glass-card" style="--delay: 0.4s">
+                    <div class="stat-card glass-card" style="--delay: 0.3s">
                         <div class="stat-icon">🏗️</div>
                         <div class="stat-number" data-target="${explanation.summary.classes.length}">0</div>
                         <div class="stat-label">Classes</div>
@@ -1216,6 +1211,16 @@ export class UIManager {
                 line-height: 1.5;
             }
 
+            .chat-list .clarify-item.user {
+                border-color: rgba(212, 175, 55, 0.5);
+                background: rgba(212, 175, 55, 0.1);
+            }
+
+            .chat-list .clarify-item.ai {
+                border-color: rgba(16, 185, 129, 0.5);
+                background: rgba(16, 185, 129, 0.08);
+            }
+
             .card-header {
                 display: flex;
                 align-items: center;
@@ -1961,7 +1966,7 @@ export class UIManager {
                 let pendingTimer = null;
                 let lastPendingId = null;
 
-                btn.addEventListener('click', async () => {
+                const submitClarify = async () => {
                     const question = input.value.trim();
                     if (!question) {
                         showNotification('Please type a question to clarify.', 'warning');
@@ -1972,9 +1977,9 @@ export class UIManager {
                     // Add a pending placeholder so users see immediate feedback
                     lastPendingId = 'pending-' + Date.now();
                     const pending = document.createElement('div');
-                    pending.className = 'clarify-item';
+                    pending.className = 'clarify-item user';
                     pending.id = lastPendingId;
-                    pending.textContent = 'Asking AI…';
+                    pending.textContent = question;
                     results.prepend(pending);
                     try {
                         vscode.postMessage({ command: 'clarify', question });
@@ -1984,6 +1989,7 @@ export class UIManager {
                             btn.querySelector('.btn-text').style.opacity = '1';
                             const item = document.getElementById(lastPendingId);
                             if (item) {
+                                item.classList.add('ai');
                                 item.textContent = 'No response received. Please try again.';
                             }
                         }, 15000);
@@ -1991,8 +1997,17 @@ export class UIManager {
                         showNotification('Failed to send clarification request.', 'warning');
                         const item = document.getElementById(lastPendingId);
                         if (item) {
+                            item.classList.add('ai');
                             item.textContent = 'Failed to send clarification request.';
                         }
+                    }
+                };
+
+                btn.addEventListener('click', submitClarify);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitClarify();
                     }
                 });
 
@@ -2031,18 +2046,24 @@ export class UIManager {
                             showNotification('Clarification failed: ' + message.error, 'warning');
                             const item = document.getElementById(lastPendingId);
                             if (item) {
+                                item.classList.add('ai');
                                 item.textContent = 'Clarification failed: ' + message.error;
                             }
                             return;
                         }
                         let item = document.getElementById(lastPendingId);
-                        if (!item) {
-                            item = document.createElement('div');
-                            item.className = 'clarify-item';
-                            results.prepend(item);
+                        // Convert pending user bubble to AI bubble below it
+                        if (item) {
+                            const ai = document.createElement('div');
+                            ai.className = 'clarify-item ai';
+                            ai.innerHTML = String(message.answer || '').replace(/\n/g, '<br/>');
+                            item.insertAdjacentElement('afterend', ai);
+                        } else {
+                            const ai = document.createElement('div');
+                            ai.className = 'clarify-item ai';
+                            ai.innerHTML = String(message.answer || '').replace(/\n/g, '<br/>');
+                            results.prepend(ai);
                         }
-                        item.innerHTML = String(message.answer || '')
-                            .replace(/\n/g, '<br/>');
                         input.value = '';
                     }
                 });
