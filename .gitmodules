@@ -1,0 +1,6 @@
+[submodule "Chrome-Extension"]
+	path = Chrome-Extension
+	url = https://github.com/alansigh/ClipCode-Draft1.git
+[submodule "aide-Website"]
+	path = aide-Website
+	url = https://github.com/hungbri288/aide-website.git
