@@ -10,12 +10,14 @@ import { AIService } from './aiService';
 
 export interface QuizQuestion {
     id: string;
-    type: 'multiple-choice' | 'open-ended';
+    type: 'multiple-choice' | 'open-ended' | 'code-modification';
     question: string;
     options?: string[]; // For multiple choice questions
     correctAnswer: string;
     explanation: string;
     codeSnippet?: string; // The specific code this question refers to
+    startingCode?: string; // For code modification questions
+    requirement?: string; // What the code should be modified to do
 }
 
 export interface Quiz {
@@ -35,7 +37,7 @@ export class QuizGenerator {
      * Main method to generate a quiz from code
      * Uses AI when configured, falls back to rule-based generation
      */
-    async generateQuiz(code: string): Promise<Quiz> {
+    async generateQuiz(code: string, fileExtension?: string): Promise<Quiz> {
         console.log('Generating quiz for code:', code.substring(0, 100) + '...');
         
         try {
@@ -43,7 +45,9 @@ export class QuizGenerator {
             const config = vscode.workspace.getConfiguration('codeQuizExplainer');
             const difficulty = config.get('quizDifficulty', 'intermediate') as 'beginner' | 'intermediate' | 'advanced';
             const questionCount = config.get('questionCount', 5) as number;
-            const language = this.detectLanguage(code);
+            const language = this.detectLanguageFromExtension(fileExtension) || 'JavaScript';
+            
+            console.log(`Detected language: ${language} (from extension: ${fileExtension})`);
             
             // Try AI generation first
             const aiQuiz = await this.aiService.generateQuiz({
@@ -59,7 +63,8 @@ export class QuizGenerator {
             console.log('AI generation failed, using fallback:', error);
             
             // Fallback to rule-based generation
-            return this.generateFallbackQuiz(code);
+            const language = this.detectLanguageFromExtension(fileExtension) || 'JavaScript';
+            return this.generateFallbackQuiz(code, language);
         }
     }
 
@@ -121,12 +126,12 @@ export class QuizGenerator {
     /**
      * Fallback quiz generation using rule-based approach
      */
-    private generateFallbackQuiz(code: string): Quiz {
+    private generateFallbackQuiz(code: string, language: string): Quiz {
         // Parse the code to identify different components
         const codeComponents = this.parseCodeComponents(code);
         
         // Generate questions based on the components found
-        const questions = this.generateQuestionsFromComponents(codeComponents, code);
+        const questions = this.generateQuestionsFromComponents(codeComponents, code, language);
         
         return {
             title: 'Code Understanding Quiz',
@@ -139,11 +144,11 @@ export class QuizGenerator {
      * Generate quiz questions based on identified code components
      * Used as fallback when AI is not available
      */
-    private generateQuestionsFromComponents(components: CodeComponent[], originalCode: string): QuizQuestion[] {
+    private generateQuestionsFromComponents(components: CodeComponent[], originalCode: string, language: string): QuizQuestion[] {
         const questions: QuizQuestion[] = [];
 
         // Add some general questions about the code structure
-        questions.push(...this.generateGeneralQuestions(originalCode));
+        questions.push(...this.generateGeneralQuestions(originalCode, language));
 
         // Generate specific questions for each component
         components.forEach((component, index) => {
@@ -157,7 +162,7 @@ export class QuizGenerator {
     /**
      * Generate general questions about the overall code
      */
-    private generateGeneralQuestions(code: string): QuizQuestion[] {
+    private generateGeneralQuestions(code: string, language: string): QuizQuestion[] {
         const questions: QuizQuestion[] = [];
 
         // Count lines for a basic question
@@ -178,15 +183,14 @@ export class QuizGenerator {
             codeSnippet: code.substring(0, 200) + '...'
         });
 
-        // Language detection question
-        const language = this.detectLanguage(code);
+        // Add language detection question using the detected language
         questions.push({
             id: 'general-2',
             type: 'multiple-choice',
             question: 'What programming language is this code written in?',
             options: ['JavaScript', 'Python', 'Java', 'C++'],
             correctAnswer: language,
-            explanation: `This appears to be ${language} code based on syntax patterns.`,
+            explanation: `This appears to be ${language} code based on the file extension and syntax patterns.`,
             codeSnippet: code.substring(0, 200) + '...'
         });
 
@@ -273,16 +277,111 @@ export class QuizGenerator {
         return match ? match[1] : 'UnknownClass';
     }
 
-    private detectLanguage(code: string): string {
-        // Simple language detection based on common patterns
-        if (code.includes('function') || code.includes('const') || code.includes('let')) {
-            return 'JavaScript';
-        } else if (code.includes('def ') || code.includes('import ')) {
-            return 'Python';
-        } else if (code.includes('public class') || code.includes('private ')) {
-            return 'Java';
+
+    /**
+     * Detect language from file extension (more reliable than pattern matching)
+     */
+    private detectLanguageFromExtension(extension?: string): string | null {
+        if (!extension) return null;
+        
+        const ext = extension.toLowerCase();
+        
+        switch (ext) {
+            case 'js':
+            case 'jsx':
+            case 'mjs':
+                return 'JavaScript';
+            
+            case 'ts':
+            case 'tsx':
+                return 'TypeScript';
+            
+            case 'py':
+            case 'pyw':
+            case 'pyc':
+                return 'Python';
+            
+            case 'java':
+                return 'Java';
+            
+            case 'cs':
+                return 'C#';
+            
+            case 'cpp':
+            case 'cc':
+            case 'cxx':
+            case 'c++':
+                return 'C++';
+            
+            case 'c':
+            case 'h':
+                return 'C';
+            
+            case 'go':
+                return 'Go';
+            
+            case 'rs':
+                return 'Rust';
+            
+            case 'php':
+                return 'PHP';
+            
+            case 'rb':
+                return 'Ruby';
+            
+            case 'swift':
+                return 'Swift';
+            
+            case 'kt':
+            case 'kts':
+                return 'Kotlin';
+            
+            case 'scala':
+                return 'Scala';
+            
+            case 'r':
+                return 'R';
+            
+            case 'dart':
+                return 'Dart';
+            
+            case 'lua':
+                return 'Lua';
+            
+            case 'pl':
+            case 'pm':
+                return 'Perl';
+            
+            case 'sh':
+            case 'bash':
+                return 'Shell';
+            
+            case 'ps1':
+                return 'PowerShell';
+            
+            case 'sql':
+                return 'SQL';
+            
+            case 'html':
+            case 'htm':
+                return 'HTML';
+            
+            case 'css':
+                return 'CSS';
+            
+            case 'json':
+                return 'JSON';
+            
+            case 'xml':
+                return 'XML';
+            
+            case 'yaml':
+            case 'yml':
+                return 'YAML';
+            
+            default:
+                return null; // Unknown extension
         }
-        return 'JavaScript'; // Default fallback
     }
 
     private getControlFlowType(controlName: string): string {

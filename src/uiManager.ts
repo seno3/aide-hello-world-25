@@ -41,6 +41,9 @@ export class UIManager {
                     case 'submitAnswer':
                         this.handleQuizAnswer(panel, message.questionId, message.answer, quiz);
                         break;
+                    case 'submitCodeModification':
+                        this.handleCodeModificationAnswer(panel, message.questionId, message.userCode, message.originalCode, message.requirement, quiz);
+                        break;
                     case 'nextQuestion':
                         this.showNextQuestion(panel, message.questionIndex, quiz);
                         break;
@@ -224,6 +227,43 @@ export class UIManager {
                             <div class="option-ripple"></div>
                         </div>
                     `).join('')}
+                </div>
+            `;
+        } else if (question.type === 'code-modification') {
+            optionsHTML = `
+                <div class="code-modification-container">
+                    ${question.startingCode ? `
+                        <div class="starting-code-container">
+                            <div class="code-header">
+                                <div class="code-dots">
+                                    <span class="dot red"></span>
+                                    <span class="dot yellow"></span>
+                                    <span class="dot green"></span>
+                                </div>
+                                <span class="code-title">Starting Code</span>
+                            </div>
+                            <pre class="code-snippet"><code>${this.escapeHtml(question.startingCode)}</code></pre>
+                        </div>
+                    ` : ''}
+                    
+                    ${question.requirement ? `
+                        <div class="requirement-container">
+                            <div class="requirement-header">
+                                <span class="requirement-icon">🎯</span>
+                                <span class="requirement-title">Requirement</span>
+                            </div>
+                            <div class="requirement-text">${question.requirement}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="code-input-container">
+                        <div class="code-input-header">
+                            <span class="code-input-icon">✏️</span>
+                            <span class="code-input-title">Your Modified Code</span>
+                        </div>
+                        <textarea class="code-textarea" id="codeAnswer" placeholder="Paste your modified code here..." rows="10"></textarea>
+                        <div class="input-focus-line"></div>
+                    </div>
                 </div>
             `;
         } else {
@@ -852,6 +892,107 @@ export class UIManager {
                 width: 100%;
             }
 
+            /* Code Modification Styles */
+            .code-modification-container {
+                margin: 25px 0;
+            }
+
+            .starting-code-container {
+                margin-bottom: 20px;
+                border-radius: 12px;
+                overflow: hidden;
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .requirement-container {
+                margin: 20px 0;
+                padding: 20px;
+                background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+                border: 1px solid rgba(255, 215, 0, 0.3);
+                border-radius: 12px;
+            }
+
+            .requirement-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                color: var(--primary-color);
+            }
+
+            .requirement-icon {
+                font-size: 1.2rem;
+            }
+
+            .requirement-title {
+                font-size: 1rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .requirement-text {
+                font-size: 1rem;
+                line-height: 1.6;
+                color: var(--vscode-foreground, #ffffff);
+                background: rgba(255, 255, 255, 0.05);
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid var(--primary-color);
+            }
+
+            .code-input-container {
+                position: relative;
+                margin: 20px 0;
+            }
+
+            .code-input-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 12px;
+                font-weight: 600;
+                color: var(--primary-color);
+            }
+
+            .code-input-icon {
+                font-size: 1.2rem;
+            }
+
+            .code-input-title {
+                font-size: 1rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .code-textarea {
+                width: 100%;
+                padding: 20px;
+                background: rgba(0, 0, 0, 0.4);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                color: var(--vscode-foreground, #ffffff);
+                font-family: 'Courier New', Consolas, monospace;
+                font-size: 0.95rem;
+                line-height: 1.5;
+                resize: vertical;
+                transition: all 0.3s ease;
+                min-height: 200px;
+            }
+
+            .code-textarea:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                background: rgba(0, 0, 0, 0.6);
+                box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+            }
+
+            .code-textarea::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+                font-style: italic;
+            }
+
             /* Modern Buttons */
             .modern-btn {
                 position: relative;
@@ -968,6 +1109,48 @@ export class UIManager {
                 border-radius: 8px;
                 font-size: 14px;
                 line-height: 1.4;
+            }
+
+            .code-modification-feedback {
+                background: rgba(255, 215, 0, 0.05);
+                border: 1px solid rgba(255, 215, 0, 0.3);
+                padding: 20px;
+                border-radius: 12px;
+            }
+
+            .code-modification-feedback .feedback-text {
+                margin: 12px 0;
+                padding: 10px;
+                background: rgba(255, 255, 255, 0.05);
+                border-radius: 6px;
+                font-style: italic;
+            }
+
+            .code-modification-feedback .issues-section,
+            .code-modification-feedback .suggestions-section {
+                margin: 15px 0;
+                padding: 12px;
+                border-radius: 8px;
+            }
+
+            .code-modification-feedback .issues-section {
+                background: rgba(255, 0, 0, 0.1);
+                border-left: 4px solid #ff4444;
+            }
+
+            .code-modification-feedback .suggestions-section {
+                background: rgba(0, 255, 0, 0.1);
+                border-left: 4px solid #44ff44;
+            }
+
+            .code-modification-feedback ul {
+                margin: 8px 0 0 0;
+                padding-left: 20px;
+            }
+
+            .code-modification-feedback li {
+                margin: 6px 0;
+                line-height: 1.5;
             }
 
             .explanation-header {
@@ -1619,6 +1802,77 @@ export class UIManager {
                     
                     isSubmitting = false;
                 }
+                
+                if (message.command === 'codeModificationEvaluation') {
+                    const { questionId, result } = message;
+                    const question = quiz.questions[currentQuestionIndex];
+                    const submitBtn = document.querySelector('.modern-btn');
+                    
+                    // Remove loading state
+                    if (submitBtn) {
+                        submitBtn.querySelector('.btn-loading').style.opacity = '0';
+                        submitBtn.querySelector('.btn-text').style.opacity = '1';
+                    }
+                    
+                    // Handle the strict AI code evaluation result
+                    const score_pct = Math.round((result.score || 0) * 100);
+                    const verdict = result.verdict || 'incorrect';
+                    
+                    // Strict grading - only "correct" if score is 70% or above
+                    let displayVerdict = verdict;
+                    if (score_pct >= 70) {
+                        displayVerdict = 'correct';
+                        score++;
+                        playSuccessAnimation();
+                    } else if (score_pct >= 30) {
+                        displayVerdict = 'partial';
+                        // No success animation for partial credit
+                    } else {
+                        displayVerdict = 'incorrect';
+                        playErrorAnimation();
+                    }
+                    
+                    // Show comprehensive explanation with AI feedback, issues, and suggestions
+                    const explanation = document.getElementById('explanation-' + questionId);
+                    if (explanation) {
+                        const feedbackDiv = document.createElement('div');
+                        feedbackDiv.className = 'ai-feedback code-modification-feedback';
+                        
+                        let feedbackHTML = '<strong>Code Evaluation:</strong> ' + displayVerdict.toUpperCase() + ' (' + score_pct + '%)<br/>';
+                        feedbackHTML += '<div class="feedback-text">' + (result.feedback || 'No feedback provided') + '</div>';
+                        
+                        if (result.issues && result.issues.length > 0) {
+                            feedbackHTML += '<div class="issues-section"><strong>Issues Found:</strong><ul>';
+                            result.issues.forEach(issue => {
+                                feedbackHTML += '<li>' + issue + '</li>';
+                            });
+                            feedbackHTML += '</ul></div>';
+                        }
+                        
+                        if (result.suggestions && result.suggestions.length > 0) {
+                            feedbackHTML += '<div class="suggestions-section"><strong>Suggestions:</strong><ul>';
+                            result.suggestions.forEach(suggestion => {
+                                feedbackHTML += '<li>' + suggestion + '</li>';
+                            });
+                            feedbackHTML += '</ul></div>';
+                        }
+                        
+                        feedbackDiv.innerHTML = feedbackHTML;
+                        explanation.appendChild(feedbackDiv);
+                        explanation.classList.add('show');
+                    }
+                    
+                    // Update button for next action
+                    if (currentQuestionIndex < quiz.questions.length - 1) {
+                        submitBtn.querySelector('.btn-text').textContent = 'Next Question →';
+                        submitBtn.onclick = () => nextQuestion();
+                    } else {
+                        submitBtn.querySelector('.btn-text').textContent = 'Finish Quiz 🎉';
+                        submitBtn.onclick = () => finishQuiz();
+                    }
+                    
+                    isSubmitting = false;
+                }
             });
 
             function selectOption(optionIndex) {
@@ -1647,6 +1901,8 @@ export class UIManager {
                 
                 if (question.type === 'open-ended') {
                     userAnswer = document.getElementById('textAnswer').value.trim();
+                } else if (question.type === 'code-modification') {
+                    userAnswer = document.getElementById('codeAnswer').value.trim();
                 }
                 
                 if (!userAnswer) {
@@ -1664,6 +1920,15 @@ export class UIManager {
                 if (question.type === 'open-ended') {
                     // Offload to extension for AI evaluation
                     vscode.postMessage({ command: 'submitAnswer', questionId, answer: userAnswer });
+                } else if (question.type === 'code-modification') {
+                    // Offload to extension for strict AI code evaluation
+                    vscode.postMessage({ 
+                        command: 'submitCodeModification', 
+                        questionId, 
+                        userCode: userAnswer,
+                        originalCode: question.startingCode,
+                        requirement: question.requirement 
+                    });
                 } else {
                     // Simulate processing time for better UX
                     await new Promise(resolve => setTimeout(resolve, 500));
@@ -1818,6 +2083,18 @@ export class UIManager {
                     document.getElementById('questionContainer').style.display = 'none';
                     document.getElementById('quizComplete').style.display = 'block';
                     document.querySelector('.quiz-header').style.display = 'none';
+                    
+                    // Update title and message based on score
+                    const titleElement = document.querySelector('.completion-title');
+                    const messageElement = document.querySelector('.completion-message');
+                    
+                    if (percentage >= 70) {
+                        titleElement.textContent = 'Amazing Work!';
+                        messageElement.textContent = 'You\\'ve mastered this code like a pro! 🚀';
+                    } else {
+                        titleElement.textContent = 'You\\'ll get it next time!';
+                        messageElement.textContent = 'Keep practicing and you\\'ll improve! 💪';
+                    }
                     
                     // Trigger celebration animation
                     setTimeout(() => {
@@ -2315,7 +2592,7 @@ export class UIManager {
         console.log(`User answered question ${questionId}: ${answer}`);
         if (question.type === 'open-ended') {
             const codeSnippet = question.codeSnippet || '';
-            const languageGuess = 'JavaScript';
+            const detectedLanguage = this.detectLanguage(codeSnippet);
             const aiServiceModule = require('./aiService');
             const aiService = new aiServiceModule.AIService();
             aiService.evaluateShortAnswer({
@@ -2323,7 +2600,7 @@ export class UIManager {
                 correctAnswer: question.correctAnswer,
                 userAnswer: answer,
                 codeSnippet,
-                language: languageGuess
+                language: detectedLanguage
             }).then((result: any) => {
                 panel.webview.postMessage({
                     command: 'shortAnswerEvaluation',
@@ -2340,6 +2617,58 @@ export class UIManager {
         }
     }
 
+    /**
+     * Handle code modification answer with strict AI evaluation
+     */
+    private handleCodeModificationAnswer(
+        panel: vscode.WebviewPanel, 
+        questionId: string, 
+        userCode: string, 
+        originalCode: string, 
+        requirement: string, 
+        quiz: Quiz
+    ): void {
+        const question = quiz.questions.find(q => q.id === questionId);
+        if (!question) {
+            return;
+        }
+        
+        console.log(`User submitted code modification for question ${questionId}`);
+        console.log('Original code:', originalCode);
+        console.log('Requirement:', requirement);
+        console.log('User code:', userCode.substring(0, 100) + '...');
+        
+        const detectedLanguage = this.detectLanguage(originalCode + '\n' + userCode);
+        console.log('Detected language:', detectedLanguage);
+        const aiServiceModule = require('./aiService');
+        const aiService = new aiServiceModule.AIService();
+        
+        aiService.evaluateCodeModification({
+            originalCode,
+            requirement,
+            userModifiedCode: userCode,
+            language: detectedLanguage
+        }).then((result: any) => {
+            panel.webview.postMessage({
+                command: 'codeModificationEvaluation',
+                questionId,
+                result
+            });
+        }).catch((err: any) => {
+            panel.webview.postMessage({
+                command: 'codeModificationEvaluation',
+                questionId,
+                result: { 
+                    score: 0, 
+                    verdict: 'incorrect', 
+                    feedback: `Evaluation failed: ${String(err)}`,
+                    issues: ['Evaluation error'],
+                    suggestions: ['Please try again']
+                }
+            });
+        });
+    }
+
     private showNextQuestion(panel: vscode.WebviewPanel, questionIndex: number, quiz: Quiz): void {
         if (questionIndex < quiz.questions.length) {
             console.log(`Showing question ${questionIndex + 1}`);
@@ -2353,5 +2682,129 @@ export class UIManager {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    /**
+     * Detect programming language from code content
+     * Enhanced detection with support for multiple languages
+     */
+    private detectLanguage(code: string): string {
+        if (!code || !code.trim()) {
+            return 'JavaScript'; // Default fallback
+        }
+
+        const codeNormalized = code.toLowerCase().trim();
+        
+        // Python patterns
+        if (codeNormalized.includes('def ') || 
+            codeNormalized.includes('import ') || 
+            codeNormalized.includes('from ') ||
+            codeNormalized.includes('print(') ||
+            /^\s*#/.test(code) || // Comments starting with #
+            codeNormalized.includes('__init__') ||
+            codeNormalized.includes('elif ')) {
+            return 'Python';
+        }
+        
+        // Java patterns
+        if (codeNormalized.includes('public class') || 
+            codeNormalized.includes('private ') ||
+            codeNormalized.includes('public static void main') ||
+            codeNormalized.includes('system.out.println') ||
+            codeNormalized.includes('extends ') ||
+            codeNormalized.includes('implements ') ||
+            codeNormalized.includes('package ')) {
+            return 'Java';
+        }
+        
+        // C# patterns
+        if (codeNormalized.includes('using system') ||
+            codeNormalized.includes('namespace ') ||
+            codeNormalized.includes('console.writeline') ||
+            codeNormalized.includes('public static void main')) {
+            return 'C#';
+        }
+        
+        // C/C++ patterns
+        if (codeNormalized.includes('#include') ||
+            codeNormalized.includes('int main(') ||
+            codeNormalized.includes('printf(') ||
+            codeNormalized.includes('cout <<') ||
+            codeNormalized.includes('std::')) {
+            return 'C++';
+        }
+        
+        // TypeScript patterns (check before JavaScript)
+        if (codeNormalized.includes('interface ') ||
+            codeNormalized.includes('type ') ||
+            codeNormalized.includes(': string') ||
+            codeNormalized.includes(': number') ||
+            codeNormalized.includes('export interface') ||
+            codeNormalized.includes('implements ')) {
+            return 'TypeScript';
+        }
+        
+        // JavaScript patterns
+        if (codeNormalized.includes('function') || 
+            codeNormalized.includes('const ') || 
+            codeNormalized.includes('let ') ||
+            codeNormalized.includes('var ') ||
+            codeNormalized.includes('console.log') ||
+            codeNormalized.includes('=>') || // Arrow functions
+            codeNormalized.includes('document.') ||
+            codeNormalized.includes('window.') ||
+            codeNormalized.includes('require(') ||
+            codeNormalized.includes('import ') && codeNormalized.includes('from ')) {
+            return 'JavaScript';
+        }
+        
+        // Go patterns
+        if (codeNormalized.includes('package main') ||
+            codeNormalized.includes('func ') ||
+            codeNormalized.includes('import (') ||
+            codeNormalized.includes('fmt.print')) {
+            return 'Go';
+        }
+        
+        // Rust patterns
+        if (codeNormalized.includes('fn main') ||
+            codeNormalized.includes('println!') ||
+            codeNormalized.includes('use std::') ||
+            codeNormalized.includes('let mut ')) {
+            return 'Rust';
+        }
+        
+        // PHP patterns
+        if (codeNormalized.includes('<?php') ||
+            codeNormalized.includes('echo ') ||
+            codeNormalized.includes('$') && codeNormalized.includes(';')) {
+            return 'PHP';
+        }
+        
+        // Ruby patterns
+        if (codeNormalized.includes('puts ') ||
+            codeNormalized.includes('require ') ||
+            codeNormalized.includes('class ') && codeNormalized.includes('end') ||
+            codeNormalized.includes('def ') && codeNormalized.includes('end')) {
+            return 'Ruby';
+        }
+        
+        // Swift patterns
+        if (codeNormalized.includes('import swift') ||
+            codeNormalized.includes('var ') && codeNormalized.includes(': ') ||
+            codeNormalized.includes('func ') && codeNormalized.includes('->') ||
+            codeNormalized.includes('print(')) {
+            return 'Swift';
+        }
+        
+        // Kotlin patterns
+        if (codeNormalized.includes('fun main') ||
+            codeNormalized.includes('println(') ||
+            codeNormalized.includes('val ') ||
+            codeNormalized.includes('class ') && codeNormalized.includes('{')) {
+            return 'Kotlin';
+        }
+        
+        return 'JavaScript'; // Default fallback
     }
 }

@@ -49,6 +49,21 @@ export interface AIShortAnswerResult {
     feedback: string;
 }
 
+export interface AICodeModificationRequest {
+    originalCode: string;
+    requirement: string;
+    userModifiedCode: string;
+    language?: string;
+}
+
+export interface AICodeModificationResult {
+    score: number; // 0.0 - 1.0
+    verdict: 'correct' | 'partial' | 'incorrect';
+    feedback: string;
+    issues?: string[]; // List of specific issues found
+    suggestions?: string[]; // Suggestions for improvement
+}
+
 export class AIService {
     private openai?: OpenAI;
     private config: AIConfig;
@@ -215,6 +230,26 @@ export class AIService {
     }
 
     /**
+     * Evaluate code modification with strict criteria
+     */
+    async evaluateCodeModification(request: AICodeModificationRequest): Promise<AICodeModificationResult> {
+        if (!this.isConfigured()) {
+            return this.evaluateCodeModificationFallback(request);
+        }
+
+        try {
+            const prompt = this.buildCodeModificationEvalPrompt(request);
+            if (this.config.provider === 'openai' && this.openai) {
+                return await this.generateOpenAICodeModificationEvaluation(prompt);
+            }
+            return this.evaluateCodeModificationFallback(request);
+        } catch (error) {
+            console.error('AI code modification evaluation failed:', error);
+            return this.evaluateCodeModificationFallback(request);
+        }
+    }
+
+    /**
      * Check if AI service is properly configured
      */
     private isConfigured(): boolean {
@@ -364,6 +399,44 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
     }
 
     /**
+     * Build prompt for code modification evaluation - STRICT grading
+     */
+    private buildCodeModificationEvalPrompt(req: AICodeModificationRequest): string {
+        const language = req.language || 'JavaScript';
+        return `STRICTLY evaluate this ${language} code modification. Be harsh and precise - no partial credit for close attempts.
+
+ORIGINAL CODE:
+\`\`\`${language.toLowerCase()}
+${req.originalCode}
+\`\`\`
+
+REQUIREMENT:
+${req.requirement}
+
+STUDENT'S MODIFIED CODE:
+\`\`\`${language.toLowerCase()}
+${req.userModifiedCode}
+\`\`\`
+
+STRICT EVALUATION CRITERIA:
+- Score 1.0: Code EXACTLY meets requirement, no syntax errors, proper style
+- Score 0.5-0.9: Code mostly works but has minor issues or inefficiencies  
+- Score 0.1-0.4: Code attempts requirement but has significant flaws
+- Score 0.0: Code doesn't work, has syntax errors, or ignores requirement
+
+Check for:
+1. Syntax correctness
+2. Logic correctness
+3. Exact requirement fulfillment
+4. Code quality and style
+5. Edge cases handled
+
+Be critical and precise. No encouragement for poor attempts.
+
+Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": "specific technical feedback", "issues": ["list", "of", "problems"], "suggestions": ["specific", "improvements"]}`;
+    }
+
+    /**
      * Generate quiz using OpenAI
      */
     private async generateOpenAIQuiz(prompt: string): Promise<any> {
@@ -504,6 +577,53 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
     }
 
     /**
+     * Generate strict code modification evaluation using OpenAI
+     */
+    private async generateOpenAICodeModificationEvaluation(prompt: string): Promise<AICodeModificationResult> {
+        if (!this.openai) {
+            throw new Error('OpenAI not initialized');
+        }
+        
+        const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4', // Use more powerful model for code evaluation
+            messages: [
+                { 
+                    role: 'system', 
+                    content: 'You are a strict code reviewer and CS instructor. Always return valid JSON with keys score, verdict, feedback, issues, suggestions. Be harsh and precise - no partial credit for sloppy code.' 
+                },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.0, // Deterministic for consistency
+            max_tokens: 500
+        }, {
+            timeout: 20000 // 20 second timeout for complex evaluation
+        });
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('No response from OpenAI');
+        }
+
+        try {
+            const parsed = JSON.parse(content);
+            const score = Math.max(0, Math.min(1, Number(parsed.score)));
+            const verdict = score >= 0.7 ? 'correct' : score >= 0.3 ? 'partial' : 'incorrect';
+            const feedback = String(parsed.feedback || 'No feedback provided');
+            const issues = Array.isArray(parsed.issues) ? parsed.issues : [];
+            const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+            
+            return { score, verdict, feedback, issues, suggestions };
+        } catch (e) {
+            console.error('Failed to parse OpenAI code modification response:', content);
+            return this.evaluateCodeModificationFallback({
+                originalCode: '',
+                requirement: '',
+                userModifiedCode: ''
+            });
+        }
+    }
+
+    /**
      * Fallback mock quiz generation (existing logic)
      */
     private generateMockQuiz(code: string): any {
@@ -533,9 +653,18 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
                     correctAnswer: 'This code performs various operations including function definitions and data manipulation.',
                     explanation: 'The code demonstrates programming concepts and performs specific computational tasks.',
                     codeSnippet: code.substring(0, 200) + '...'
+                },
+                {
+                    id: 'mock-3',
+                    type: 'code-modification',
+                    question: 'Modify the code to add proper error handling',
+                    startingCode: code.substring(0, 150),
+                    requirement: 'Add try-catch blocks around potentially unsafe operations and provide meaningful error messages',
+                    correctAnswer: 'Code with try-catch blocks and error handling',
+                    explanation: 'Error handling is crucial for robust code. Try-catch blocks help prevent crashes and provide better user experience.'
                 }
             ],
-            totalQuestions: 2
+            totalQuestions: 3
         };
     }
 
@@ -636,6 +765,86 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
         }
             
         return { score, verdict, feedback };
+    }
+
+    /**
+     * Strict fallback code modification evaluation - no AI leniency
+     */
+    private evaluateCodeModificationFallback(req: AICodeModificationRequest): AICodeModificationResult {
+        const issues: string[] = [];
+        const suggestions: string[] = [];
+        let score = 0;
+        
+        // Basic syntax check
+        const userCode = req.userModifiedCode.trim();
+        const originalCode = req.originalCode.trim();
+        
+        if (!userCode) {
+            issues.push('No code provided');
+            return {
+                score: 0,
+                verdict: 'incorrect',
+                feedback: 'No code submitted. Please provide your modified code.',
+                issues,
+                suggestions: ['Submit your modified code']
+            };
+        }
+        
+        // Check if code was actually modified
+        if (userCode === originalCode) {
+            issues.push('Code was not modified');
+            suggestions.push('You need to modify the original code to meet the requirement');
+            score = 0;
+        } else {
+            // Give some credit for attempting modification
+            score = 0.2;
+        }
+        
+        // Basic syntax checks (simplified)
+        const hasSyntaxErrors = /[\{\[\(](?![^\{\[\(]*[\}\]\)])/.test(userCode) || // Unmatched brackets
+                               /[\}\]\)](?![^\}\]\)]*[\{\[\(])/.test(userCode) || // Extra closing brackets
+                               /[^;]\s*$/.test(userCode.split('\n').pop() || '') && userCode.includes('{'); // Missing semicolons
+        
+        if (hasSyntaxErrors) {
+            issues.push('Potential syntax errors detected');
+            suggestions.push('Check your brackets, parentheses, and semicolons');
+        } else {
+            score += 0.2;
+        }
+        
+        // Check if requirement keywords are present (very basic)
+        const requirementWords = req.requirement.toLowerCase().split(' ').filter(w => w.length > 3);
+        const codeWords = userCode.toLowerCase();
+        const keywordMatches = requirementWords.filter(word => codeWords.includes(word)).length;
+        
+        if (keywordMatches > 0) {
+            score += 0.3 * (keywordMatches / requirementWords.length);
+        } else {
+            issues.push('Code doesn\'t appear to address the requirement');
+            suggestions.push('Re-read the requirement and ensure your code addresses it');
+        }
+        
+        // Determine verdict based on strict criteria
+        let verdict: 'correct' | 'partial' | 'incorrect';
+        if (score >= 0.7) {
+            verdict = 'correct';
+        } else if (score >= 0.3) {
+            verdict = 'partial';
+        } else {
+            verdict = 'incorrect';
+        }
+        
+        // Harsh feedback - no encouragement for poor attempts
+        let feedback: string;
+        if (score >= 0.7) {
+            feedback = 'Code appears to meet basic requirements.';
+        } else if (score >= 0.3) {
+            feedback = 'Code has some issues that need to be addressed.';
+        } else {
+            feedback = 'Code does not meet the requirements. Significant revision needed.';
+        }
+        
+        return { score, verdict, feedback, issues, suggestions };
     }
 
     /**

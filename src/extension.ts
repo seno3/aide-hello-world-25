@@ -39,8 +39,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
+            // Get file extension for language detection
+            const fileExtension = activeEditor.document.fileName.split('.').pop() || '';
+            
             // Generate quiz questions for the code
-            const quiz = await quizGenerator.generateQuiz(code);
+            const quiz = await quizGenerator.generateQuiz(code, fileExtension);
             
             // Show the quiz in a webview panel
             await uiManager.showQuizPanel(quiz, code);
@@ -71,8 +74,11 @@ export function activate(context: vscode.ExtensionContext) {
         }
 
         try {
+            // Get file extension for language detection
+            const fileExtension = activeEditor.document.fileName.split('.').pop() || '';
+            
             // Generate explanation for the code
-            const explanation = await codeExplainer.explainCode(code);
+            const explanation = await codeExplainer.explainCode(code, fileExtension);
             
             // Show the explanation in a webview panel
             await uiManager.showExplanationPanel(explanation, code);
