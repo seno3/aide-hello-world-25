@@ -84,6 +84,8 @@ export class UIManager {
                         // Handle section toggling
                         break;
                     case 'clarify':
+                        // Acknowledge receipt to the webview
+                        panel.webview.postMessage({ command: 'clarifyAck' });
                         if (!this.codeExplainer) {
                             panel.webview.postMessage({ command: 'clarifyResult', error: 'Clarification not available.' });
                             return;
@@ -345,7 +347,7 @@ export class UIManager {
                 <div class="stats-dashboard">
                     <div class="stat-card glass-card" style="--delay: 0.1s">
                         <div class="stat-icon">📝</div>
-                        <div class="stat-number" data-target="${explanation.lineByLineExplanations.length}">0</div>
+                        <div class="stat-number" data-target="${explanation.summary && explanation.summary.totalLines ? explanation.summary.totalLines : explanation.lineByLineExplanations.length}">0</div>
                         <div class="stat-label">Lines of Code</div>
                     </div>
                     <div class="stat-card glass-card" style="--delay: 0.2s">
@@ -1914,16 +1916,21 @@ export class UIManager {
             function animateStatsCounters() {
                 const counters = document.querySelectorAll('.stat-number');
                 counters.forEach(counter => {
-                    const target = parseInt(counter.dataset.target);
+                    const raw = counter.dataset.target;
+                    const target = Number(raw);
+                    if (!Number.isFinite(target) || target <= 0) {
+                        counter.textContent = String(Math.max(0, target || 0));
+                        return;
+                    }
                     let current = 0;
-                    const increment = Math.max(1, target / 50);
+                    const increment = Math.max(1, Math.floor(target / 50));
                     const timer = setInterval(() => {
                         current += increment;
                         if (current >= target) {
-                            counter.textContent = target;
+                            counter.textContent = String(target);
                             clearInterval(timer);
                         } else {
-                            counter.textContent = Math.floor(current);
+                            counter.textContent = String(Math.floor(current));
                         }
                     }, 30);
                 });
@@ -1990,6 +1997,10 @@ export class UIManager {
 
                 window.addEventListener('message', event => {
                     const message = event.data || {};
+                    if (message.command === 'clarifyAck') {
+                        // Can add any additional UX here if needed
+                        return;
+                    }
                     if (message.command === 'clarifyResult') {
                         if (pendingTimer) {
                             clearTimeout(pendingTimer);
