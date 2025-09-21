@@ -446,13 +446,15 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
         }
 
         const completion = await this.openai.chat.completions.create({
-            model: this.config.model || 'gpt-4',
+            model: 'gpt-3.5-turbo', // Use faster model for clarifications
             messages: [
                 { role: 'system', content: 'You are a helpful coding instructor. Answer clearly and concisely.' },
                 { role: 'user', content: prompt }
             ],
             temperature: 0.3,
-            max_tokens: 800
+            max_tokens: 600 // Reduced for faster responses
+        }, {
+            timeout: 15000 // 15 second timeout for speed
         });
 
         const content = completion.choices[0]?.message?.content;

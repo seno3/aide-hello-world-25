@@ -84,17 +84,22 @@ export class UIManager {
                         // Handle section toggling
                         break;
                     case 'clarify':
+                        console.log('Clarify request received:', message.question);
                         // Acknowledge receipt to the webview
                         panel.webview.postMessage({ command: 'clarifyAck' });
                         if (!this.codeExplainer) {
+                            console.log('CodeExplainer not available');
                             panel.webview.postMessage({ command: 'clarifyResult', error: 'Clarification not available.' });
                             return;
                         }
+                        console.log('Processing clarification with AI...');
                         (async () => {
                             try {
                                 const answer = await this.codeExplainer!.clarify(originalCode, message.question || '');
+                                console.log('Clarification answer received:', answer.substring(0, 100) + '...');
                                 panel.webview.postMessage({ command: 'clarifyResult', answer });
                             } catch (err: any) {
+                                console.error('Clarification error:', err);
                                 panel.webview.postMessage({ command: 'clarifyResult', error: String(err) });
                             }
                         })();
@@ -2030,6 +2035,7 @@ export class UIManager {
                     pending.textContent = question;
                     results.prepend(pending);
                     try {
+                        console.log('Sending message to extension...');
                         vscode.postMessage({ command: 'clarify', question });
                         // Fallback timeout to restore button state and show error if no response
                         pendingTimer = setTimeout(() => {
@@ -2084,6 +2090,7 @@ export class UIManager {
                         return;
                     }
                     if (message.command === 'clarifyResult') {
+                        console.log('Clarify result received:', message);
                         if (pendingTimer) {
                             clearTimeout(pendingTimer);
                             pendingTimer = null;
