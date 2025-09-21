@@ -284,6 +284,7 @@ export class UIManager {
      * Generate modern HTML for explanation panel
      */
     private generateModernExplanationHTML(explanation: CodeExplanation, originalCode: string): string {
+        const selectedLineCount = originalCode ? originalCode.split('\n').length : 0;
         return `
         <!DOCTYPE html>
         <html lang="en">
@@ -347,7 +348,7 @@ export class UIManager {
                 <div class="stats-dashboard">
                     <div class="stat-card glass-card" style="--delay: 0.1s">
                         <div class="stat-icon">📝</div>
-                        <div class="stat-number" data-target="${explanation.summary && explanation.summary.totalLines ? explanation.summary.totalLines : explanation.lineByLineExplanations.length}">0</div>
+                        <div class="stat-number" data-target="${selectedLineCount}">0</div>
                         <div class="stat-label">Lines of Code</div>
                     </div>
                     <div class="stat-card glass-card" style="--delay: 0.2s">
