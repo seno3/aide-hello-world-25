@@ -2172,49 +2172,64 @@ export class UIManager {
                 const btn = document.getElementById('clarifyBtn');
                 const response = document.getElementById('clarifyResponse');
                 
-                if (!input || !btn || !response) return;
+                if (!input || !btn || !response) {
+                    console.error('Clarify elements not found:', { input: !!input, btn: !!btn, response: !!response });
+                    return;
+                }
                 
+                console.log('Clarify questions setup complete');
                 let isProcessing = false;
                 
                 const sendQuestion = async () => {
                     const question = input.value.trim();
+                    console.log('Sending question:', question);
+                    
                     if (!question || isProcessing) return;
                     
                     isProcessing = true;
                     
                     // Show loading state
-                    btn.querySelector('.send-text').style.opacity = '0';
-                    btn.querySelector('.btn-loading').style.opacity = '1';
+                    const sendText = btn.querySelector('.send-text');
+                    const loading = btn.querySelector('.btn-loading');
+                    if (sendText) sendText.style.opacity = '0';
+                    if (loading) loading.style.opacity = '1';
                     
                     // Hide previous response
                     response.classList.remove('show');
                     
                     try {
+                        console.log('Posting message to extension...');
                         vscode.postMessage({ command: 'clarify', question });
                         
-                        // Timeout after 10 seconds for quick response
+                        // Timeout after 15 seconds
                         setTimeout(() => {
                             if (isProcessing) {
+                                console.log('Clarify request timed out');
                                 showResponse('Request timed out. Please try again.');
                                 resetButton();
                             }
-                        }, 10000);
+                        }, 15000);
                         
                     } catch (error) {
+                        console.error('Failed to send clarify message:', error);
                         showResponse('Failed to send question. Please try again.');
                         resetButton();
                     }
                 };
                 
                 const showResponse = (text) => {
+                    console.log('Showing response:', text.substring(0, 100) + '...');
                     response.innerHTML = text.replace(/\n/g, '<br/>');
                     response.classList.add('show');
                 };
                 
                 const resetButton = () => {
+                    console.log('Resetting button state');
                     isProcessing = false;
-                    btn.querySelector('.send-text').style.opacity = '1';
-                    btn.querySelector('.btn-loading').style.opacity = '0';
+                    const sendText = btn.querySelector('.send-text');
+                    const loading = btn.querySelector('.btn-loading');
+                    if (sendText) sendText.style.opacity = '1';
+                    if (loading) loading.style.opacity = '0';
                 };
                 
                 // Event listeners
@@ -2226,17 +2241,36 @@ export class UIManager {
                     }
                 });
                 
-                // Handle AI responses
-                window.addEventListener('message', event => {
-                    const message = event.data || {};
-                    if (message.command === 'clarifyResult' && isProcessing) {
-                        const answer = message.error || message.answer || 'No response received.';
-                        showResponse(answer);
-                        resetButton();
-                        input.value = ''; // Clear input after successful response
-                    }
-                });
+                console.log('Setting up clarify message listener');
             }
+            
+            // Global message listener for clarify responses (like quiz does)
+            window.addEventListener('message', event => {
+                const message = event.data || {};
+                console.log('Received message:', message.command);
+                
+                if (message.command === 'clarifyResult') {
+                    console.log('Clarify result received:', message);
+                    const response = document.getElementById('clarifyResponse');
+                    const btn = document.getElementById('clarifyBtn');
+                    
+                    if (response && btn) {
+                        const answer = message.error || message.answer || 'No response received.';
+                        response.innerHTML = answer.replace(/\n/g, '<br/>');
+                        response.classList.add('show');
+                        
+                        // Reset button
+                        const sendText = btn.querySelector('.send-text');
+                        const loading = btn.querySelector('.btn-loading');
+                        if (sendText) sendText.style.opacity = '1';
+                        if (loading) loading.style.opacity = '0';
+                        
+                        // Clear input
+                        const input = document.getElementById('clarifyInput');
+                        if (input) input.value = '';
+                    }
+                }
+            });
             
             function showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
