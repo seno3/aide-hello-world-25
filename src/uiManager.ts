@@ -333,22 +333,38 @@ export class UIManager {
                     <p class="overview-text">${explanation.overview}</p>
                 </div>
 
-                <!-- Ask Clarifying Questions -->
-                <div class="clarify-card glass-card slide-in">
+                <!-- AI Assistant Chat -->
+                <div class="ai-chat-card glass-card slide-in">
                     <div class="card-header">
-                        <span class="card-icon">💬</span>
-                        <h2>Ask Clarifying Questions</h2>
+                        <span class="card-icon">🤖</span>
+                        <h2>AI Assistant</h2>
+                        <button id="toggleChat" class="toggle-btn">💬</button>
                     </div>
-                    <p class="overview-text">Have follow-up questions about the overview? Ask for more detail or different angles.</p>
-                    <div class="clarify-inputs">
-                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="Ask a follow-up... (Shift+Enter for newline)"></textarea>
-                        <button id="clarifyBtn" class="modern-btn primary-btn">
-                            <span class="btn-text">Ask AI</span>
-                            <div class="btn-loading"><div class="loading-spinner"></div></div>
-                            <div class="btn-ripple"></div>
-                        </button>
+                    
+                    <!-- Quick Questions -->
+                    <div class="quick-questions">
+                        <p class="section-label">Quick Questions:</p>
+                        <div class="quick-question-grid">
+                            <button class="quick-q-btn" data-question="What is the main purpose of this code?">🎯 Main Purpose</button>
+                            <button class="quick-q-btn" data-question="How does this code handle errors?">⚠️ Error Handling</button>
+                            <button class="quick-q-btn" data-question="What are the key variables and their roles?">📊 Variables</button>
+                            <button class="quick-q-btn" data-question="Can you explain the algorithm step by step?">🔄 Algorithm</button>
+                            <button class="quick-q-btn" data-question="What could be improved in this code?">✨ Improvements</button>
+                            <button class="quick-q-btn" data-question="Are there any potential bugs or issues?">🐛 Issues</button>
+                        </div>
                     </div>
-                    <div id="clarifyResults" class="clarify-results chat-list"></div>
+
+                    <!-- Chat Interface -->
+                    <div id="chatContainer" class="chat-container">
+                        <div id="chatMessages" class="chat-messages"></div>
+                        <div class="chat-input-area">
+                            <input type="text" id="chatInput" class="chat-input" placeholder="Ask anything about this code..." />
+                            <button id="sendBtn" class="send-btn">
+                                <span class="send-icon">➤</span>
+                                <div class="btn-loading"><div class="loading-spinner"></div></div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Stats Dashboard removed per request -->
@@ -1181,42 +1197,168 @@ export class UIManager {
                 margin-bottom: 20px;
             }
 
-            .clarify-card {
-                padding: 22px;
-                margin-top: 10px;
+            .ai-chat-card {
+                padding: 20px;
+                margin-top: 15px;
+                position: relative;
             }
 
-            .clarify-inputs {
-                display: flex;
-                gap: 10px;
-                align-items: flex-start;
-                margin-top: 10px;
-                flex-wrap: wrap;
+            .toggle-btn {
+                background: rgba(255, 215, 0, 0.1);
+                border: 1px solid var(--primary-color);
+                border-radius: 8px;
+                padding: 8px 12px;
+                color: var(--primary-color);
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                margin-left: auto;
             }
 
-            .clarify-results {
-                margin-top: 12px;
+            .toggle-btn:hover {
+                background: rgba(255, 215, 0, 0.2);
+                transform: scale(1.05);
+            }
+
+            .quick-questions {
+                margin: 15px 0;
+            }
+
+            .section-label {
+                font-size: 14px;
+                color: rgba(255, 255, 255, 0.7);
+                margin-bottom: 10px;
+                font-weight: 500;
+            }
+
+            .quick-question-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 8px;
+                margin-bottom: 20px;
+            }
+
+            .quick-q-btn {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 10px;
+                padding: 12px 16px;
+                color: rgba(255, 255, 255, 0.9);
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 13px;
+                text-align: left;
                 display: flex;
-                flex-direction: column;
+                align-items: center;
                 gap: 8px;
             }
 
-            .clarify-item {
-                background: rgba(255, 255, 255, 0.05);
+            .quick-q-btn:hover {
+                background: rgba(255, 215, 0, 0.1);
+                border-color: var(--primary-color);
+                transform: translateY(-2px);
+            }
+
+            .chat-container {
                 border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 12px;
-                padding: 12px;
-                line-height: 1.5;
+                background: rgba(0, 0, 0, 0.2);
+                overflow: hidden;
             }
 
-            .chat-list .clarify-item.user {
-                border-color: rgba(212, 175, 55, 0.5);
-                background: rgba(212, 175, 55, 0.1);
+            .chat-messages {
+                max-height: 300px;
+                overflow-y: auto;
+                padding: 15px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
             }
 
-            .chat-list .clarify-item.ai {
-                border-color: rgba(16, 185, 129, 0.5);
-                background: rgba(16, 185, 129, 0.08);
+            .chat-message {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .chat-message.user {
+                align-items: flex-end;
+            }
+
+            .chat-message.ai {
+                align-items: flex-start;
+            }
+
+            .message-bubble {
+                max-width: 80%;
+                padding: 12px 16px;
+                border-radius: 18px;
+                font-size: 14px;
+                line-height: 1.4;
+                word-wrap: break-word;
+            }
+
+            .message-bubble.user {
+                background: linear-gradient(135deg, var(--primary-color), #e6c200);
+                color: #000;
+                border-bottom-right-radius: 6px;
+            }
+
+            .message-bubble.ai {
+                background: rgba(255, 255, 255, 0.1);
+                color: rgba(255, 255, 255, 0.9);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-bottom-left-radius: 6px;
+            }
+
+            .chat-input-area {
+                display: flex;
+                padding: 15px;
+                background: rgba(255, 255, 255, 0.02);
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                gap: 10px;
+            }
+
+            .chat-input {
+                flex: 1;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 20px;
+                padding: 12px 16px;
+                color: white;
+                font-size: 14px;
+                outline: none;
+                transition: all 0.3s ease;
+            }
+
+            .chat-input:focus {
+                border-color: var(--primary-color);
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            .send-btn {
+                background: linear-gradient(135deg, var(--primary-color), #e6c200);
+                border: none;
+                border-radius: 50%;
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+            }
+
+            .send-btn:hover {
+                transform: scale(1.1);
+                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+            }
+
+            .send-icon {
+                font-size: 16px;
+                color: #000;
+                font-weight: bold;
             }
 
             .card-header {
@@ -1947,7 +2089,7 @@ export class UIManager {
             document.addEventListener('DOMContentLoaded', function() {
                 animateStatsCounters();
                 setupIntersectionObserver();
-                setupClarifyBox();
+                setupAIChat();
             });
             
             function highlightLine(lineNumber) {
@@ -2011,16 +2153,23 @@ export class UIManager {
             }
             
             function setupClarifyBox() {
+                console.log('setupClarifyBox called');
                 const input = document.getElementById('clarifyInput');
                 const btn = document.getElementById('clarifyBtn');
                 const results = document.getElementById('clarifyResults');
-                if (!input || !btn || !results) return;
+                console.log('Elements found:', { input: !!input, btn: !!btn, results: !!results });
+                if (!input || !btn || !results) {
+                    console.error('Missing clarify elements:', { input, btn, results });
+                    return;
+                }
 
                 let pendingTimer = null;
                 let lastPendingId = null;
 
                 const submitClarify = async () => {
+                    console.log('submitClarify called');
                     const question = input.value.trim();
+                    console.log('Question:', question);
                     if (!question) {
                         showNotification('Please type a question to clarify.', 'warning');
                         return;
@@ -2057,6 +2206,7 @@ export class UIManager {
                     }
                 };
 
+                console.log('Setting up event listeners');
                 btn.addEventListener('click', submitClarify);
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -2064,6 +2214,7 @@ export class UIManager {
                         submitClarify();
                     }
                 });
+                console.log('Event listeners set up successfully');
 
                 window.addEventListener('message', event => {
                     const message = event.data || {};
@@ -2123,7 +2274,127 @@ export class UIManager {
                     }
                 });
             }
+            
+            function setupAIChat() {
+                const chatInput = document.getElementById('chatInput');
+                const sendBtn = document.getElementById('sendBtn');
+                const chatMessages = document.getElementById('chatMessages');
+                const quickBtns = document.querySelectorAll('.quick-q-btn');
+                
+                if (!chatInput || !sendBtn || !chatMessages) {
+                    console.error('AI Chat elements not found');
+                    return;
+                }
 
+                let isProcessing = false;
+
+                // Handle quick question buttons
+                quickBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const question = btn.dataset.question;
+                        if (question) {
+                            chatInput.value = question;
+                            sendMessage();
+                        }
+                    });
+                });
+
+                // Send message function
+                const sendMessage = async () => {
+                    const question = chatInput.value.trim();
+                    if (!question || isProcessing) return;
+
+                    isProcessing = true;
+                    
+                    // Add user message to chat
+                    addMessage(question, 'user');
+                    chatInput.value = '';
+                    
+                    // Show loading state
+                    sendBtn.querySelector('.send-icon').style.opacity = '0';
+                    sendBtn.querySelector('.btn-loading').style.opacity = '1';
+                    
+                    // Add thinking indicator
+                    const thinkingId = 'thinking-' + Date.now();
+                    addMessage('Thinking...', 'ai', thinkingId);
+                    
+                    try {
+                        vscode.postMessage({ command: 'clarify', question });
+                        
+                        // Timeout fallback
+                        setTimeout(() => {
+                            if (isProcessing) {
+                                replaceMessage(thinkingId, 'Sorry, I took too long to respond. Please try again.', 'ai');
+                                resetSendButton();
+                            }
+                        }, 15000);
+                        
+                    } catch (error) {
+                        replaceMessage(thinkingId, 'Failed to send message. Please try again.', 'ai');
+                        resetSendButton();
+                    }
+                };
+
+                // Add message to chat
+                const addMessage = (text, sender, id = null) => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message ' + sender;
+                    if (id) messageDiv.id = id;
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = 'message-bubble ' + sender;
+                    bubble.innerHTML = text.replace(/\n/g, '<br/>');
+                    
+                    messageDiv.appendChild(bubble);
+                    chatMessages.appendChild(messageDiv);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                };
+
+                // Replace message content
+                const replaceMessage = (id, newText, sender) => {
+                    const messageEl = document.getElementById(id);
+                    if (messageEl) {
+                        const bubble = messageEl.querySelector('.message-bubble');
+                        if (bubble) {
+                            bubble.innerHTML = newText.replace(/\n/g, '<br/>');
+                        }
+                    }
+                };
+
+                // Reset send button state
+                const resetSendButton = () => {
+                    isProcessing = false;
+                    sendBtn.querySelector('.send-icon').style.opacity = '1';
+                    sendBtn.querySelector('.btn-loading').style.opacity = '0';
+                };
+
+                // Event listeners
+                sendBtn.addEventListener('click', sendMessage);
+                chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+
+                // Handle AI responses
+                window.addEventListener('message', event => {
+                    const message = event.data || {};
+                    
+                    if (message.command === 'clarifyResult') {
+                        const thinkingEl = document.querySelector('[id^="thinking-"]');
+                        if (thinkingEl && isProcessing) {
+                            const response = message.error || message.answer || 'No response received.';
+                            const bubble = thinkingEl.querySelector('.message-bubble');
+                            if (bubble) {
+                                bubble.innerHTML = response.replace(/\n/g, '<br/>');
+                            }
+                            resetSendButton();
+                        }
+                    }
+                });
+            }
+            
             function showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
                 notification.className = \`notification \${type}\`;
