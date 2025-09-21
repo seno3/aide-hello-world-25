@@ -314,24 +314,6 @@ export class UIManager {
                     </div>
                 </div>
 
-                <!-- Clarification Box (moved near top) -->
-                <div class="clarify-card glass-card">
-                    <div class="card-header">
-                        <span class="card-icon">💬</span>
-                        <h2>Ask for Clarification</h2>
-                    </div>
-                    <p class="overview-text">Have a follow-up question? Ask the AI for more detail.</p>
-                    <div class="clarify-inputs">
-                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Can you explain how the loop condition works?"></textarea>
-                        <button id="clarifyBtn" class="modern-btn primary-btn">
-                            <span class="btn-text">Clarify with AI</span>
-                            <div class="btn-loading"><div class="loading-spinner"></div></div>
-                            <div class="btn-ripple"></div>
-                        </button>
-                    </div>
-                    <div id="clarifyResults" class="clarify-results"></div>
-                </div>
-
                 <!-- Overview Card -->
                 <div class="overview-card glass-card slide-in">
                     <div class="card-header">
@@ -339,6 +321,24 @@ export class UIManager {
                         <h2>Overview</h2>
                     </div>
                     <p class="overview-text">${explanation.overview}</p>
+                </div>
+
+                <!-- Ask Clarifying Questions -->
+                <div class="clarify-card glass-card slide-in">
+                    <div class="card-header">
+                        <span class="card-icon">💬</span>
+                        <h2>Ask Clarifying Questions</h2>
+                    </div>
+                    <p class="overview-text">Have follow-up questions about the overview? Ask for more detail or different angles.</p>
+                    <div class="clarify-inputs">
+                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Why is the complexity marked as moderate? Can you compare two approaches?"></textarea>
+                        <button id="clarifyBtn" class="modern-btn primary-btn">
+                            <span class="btn-text">Ask AI</span>
+                            <div class="btn-loading"><div class="loading-spinner"></div></div>
+                            <div class="btn-ripple"></div>
+                        </button>
+                    </div>
+                    <div id="clarifyResults" class="clarify-results"></div>
                 </div>
 
                 <!-- Stats Dashboard -->
