@@ -957,6 +957,16 @@ export class UIManager {
                 max-height: 500px;
             }
 
+            .ai-feedback {
+                margin-top: 15px;
+                padding: 12px;
+                background: rgba(255, 215, 0, 0.1);
+                border: 1px solid var(--primary-color);
+                border-radius: 8px;
+                font-size: 14px;
+                line-height: 1.4;
+            }
+
             .explanation-header {
                 display: flex;
                 align-items: center;
@@ -1515,6 +1525,56 @@ export class UIManager {
             document.addEventListener('DOMContentLoaded', function() {
                 updateProgressBar();
                 animateStatsCounters();
+            });
+
+            // Listen for AI evaluation results from the extension
+            window.addEventListener('message', (event) => {
+                const message = event.data || {};
+                if (message.command === 'shortAnswerEvaluation') {
+                    const { questionId, result } = message;
+                    const question = quiz.questions[currentQuestionIndex];
+                    const submitBtn = document.querySelector('.modern-btn');
+                    
+                    // Remove loading state
+                    if (submitBtn) {
+                        submitBtn.querySelector('.btn-loading').style.opacity = '0';
+                        submitBtn.querySelector('.btn-text').style.opacity = '1';
+                    }
+                    
+                    // Handle the AI evaluation result
+                    const score_pct = Math.round((result.score || 0) * 100);
+                    const verdict = result.verdict || 'incorrect';
+                    
+                    if (verdict === 'correct' || score_pct >= 70) {
+                        score++;
+                        playSuccessAnimation();
+                    } else if (verdict === 'partial' || score_pct >= 30) {
+                        playSuccessAnimation(); // Still positive feedback for partial credit
+                    } else {
+                        playErrorAnimation();
+                    }
+                    
+                    // Show explanation with AI feedback
+                    const explanation = document.getElementById('explanation-' + questionId);
+                    if (explanation) {
+                        const feedbackDiv = document.createElement('div');
+                        feedbackDiv.className = 'ai-feedback';
+                        feedbackDiv.innerHTML = '<strong>AI Evaluation:</strong> ' + verdict.toUpperCase() + ' (' + score_pct + '%)<br/>' + (result.feedback || '');
+                        explanation.appendChild(feedbackDiv);
+                        explanation.classList.add('show');
+                    }
+                    
+                    // Update button for next action
+                    if (currentQuestionIndex < quiz.questions.length - 1) {
+                        submitBtn.querySelector('.btn-text').textContent = 'Next Question →';
+                        submitBtn.onclick = () => nextQuestion();
+                    } else {
+                        submitBtn.querySelector('.btn-text').textContent = 'Finish Quiz 🎉';
+                        submitBtn.onclick = () => finishQuiz();
+                    }
+                    
+                    isSubmitting = false;
+                }
             });
 
             function selectOption(optionIndex) {
