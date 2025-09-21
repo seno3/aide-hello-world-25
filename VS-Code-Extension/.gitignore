@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+*.vsix
+
+# Environment files (contains API keys)
+.env
+.env.local
+.env.production
+
+# VS Code settings with sensitive data
+.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# API keys and secrets
+secrets.json
+config.local.json
