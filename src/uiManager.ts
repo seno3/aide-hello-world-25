@@ -346,24 +346,7 @@ export class UIManager {
                     <div id="clarifyResults" class="clarify-results chat-list"></div>
                 </div>
 
-                <!-- Stats Dashboard (LOC removed) -->
-                <div class="stats-dashboard">
-                    <div class="stat-card glass-card" style="--delay: 0.1s">
-                        <div class="stat-icon">⚡</div>
-                        <div class="stat-number" data-target="${explanation.summary.functions.length}">0</div>
-                        <div class="stat-label">Functions</div>
-                    </div>
-                    <div class="stat-card glass-card" style="--delay: 0.2s">
-                        <div class="stat-icon">📦</div>
-                        <div class="stat-number" data-target="${explanation.summary.variables.length}">0</div>
-                        <div class="stat-label">Variables</div>
-                    </div>
-                    <div class="stat-card glass-card" style="--delay: 0.3s">
-                        <div class="stat-icon">🏗️</div>
-                        <div class="stat-number" data-target="${explanation.summary.classes.length}">0</div>
-                        <div class="stat-label">Classes</div>
-                    </div>
-                </div>
+                <!-- Stats Dashboard removed per request -->
 
                 <!-- Line Explanations -->
                 <div class="line-explanations-section">
