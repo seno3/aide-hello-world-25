@@ -10,8 +10,8 @@ import { UIManager } from './uiManager';
 export function activate(context: vscode.ExtensionContext) {
     console.log('Code Quiz & Explainer extension is now active!');
     
-    // Show a notification to confirm extension is loaded
-    vscode.window.showInformationMessage('Code Quiz & Explainer extension loaded successfully!');
+    // Show a modern notification to confirm extension is loaded
+    vscode.window.showInformationMessage('🚀 Code Quiz & Explainer is ready to blow your mind!');
 
     // Initialize our core modules
     const quizGenerator = new QuizGenerator();
