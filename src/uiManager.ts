@@ -1550,13 +1550,13 @@ export class UIManager {
                     if (score_pct >= 70) {
                         displayVerdict = 'correct';
                         score++;
-                        playSuccessAnimation();
+                        playSuccessAnimation(); // Only show "correct!" popup for 70%+
                     } else if (score_pct >= 30) {
                         displayVerdict = 'partial';
-                        playSuccessAnimation(); // Still positive feedback for partial credit
+                        // No animation for partial - just neutral feedback
                     } else {
                         displayVerdict = 'incorrect';
-                        playErrorAnimation();
+                        playErrorAnimation(); // Show error animation for low scores
                     }
                     
                     // Show explanation with AI feedback
