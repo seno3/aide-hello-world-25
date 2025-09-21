@@ -127,11 +127,15 @@ export class QuizGenerator {
      * Fallback quiz generation using rule-based approach
      */
     private generateFallbackQuiz(code: string, language: string): Quiz {
+        console.log('🚀 Generating fallback quiz for language:', language);
+        
         // Parse the code to identify different components
         const codeComponents = this.parseCodeComponents(code);
+        console.log('🚀 Found code components:', codeComponents.length);
         
         // Generate questions based on the components found
         const questions = this.generateQuestionsFromComponents(codeComponents, code, language);
+        console.log('🚀 Generated questions:', questions.length);
         
         return {
             title: 'Code Understanding Quiz',

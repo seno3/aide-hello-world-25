@@ -32,6 +32,10 @@
       {
         "command": "codeQuizExplainer.interceptPaste",
         "title": "Intercept Paste (Internal)"
+      },
+      {
+        "command": "codeQuizExplainer.testPoke",
+        "title": "Test Poke Modal (Debug)"
       }
     ],
     "keybindings": [

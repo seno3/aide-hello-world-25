@@ -8,18 +8,26 @@ import { UIManager } from './uiManager';
  * Called when the extension is first activated
  */
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Code Quiz & Explainer extension is now active!');
-    
-    // Show a modern notification to confirm extension is loaded
-    vscode.window.showInformationMessage('🚀 Code Quiz & Explainer is ready to blow your mind!');
+    try {
+        console.log('🚀 EXTENSION ACTIVATING - Code Quiz & Explainer extension is now active!');
+        
+        // Show a modern notification to confirm extension is loaded
+        vscode.window.showInformationMessage('🚀 Code Quiz & Explainer is ready to blow your mind!');
+        console.log('🚀 Notification shown');
 
-    // Initialize our core modules
-    const quizGenerator = new QuizGenerator();
-    const codeExplainer = new CodeExplainer();
-    const uiManager = new UIManager(context, codeExplainer);
+        // Initialize our core modules
+        console.log('🚀 Initializing core modules...');
+        const quizGenerator = new QuizGenerator();
+        console.log('🚀 QuizGenerator created');
+        const codeExplainer = new CodeExplainer();
+        console.log('🚀 CodeExplainer created');
+        const uiManager = new UIManager(context, codeExplainer);
+        console.log('🚀 UIManager created');
 
     // Register the "Quiz Me on This Code" command
+    console.log('🚀 Registering quizMe command...');
     const quizCommand = vscode.commands.registerCommand('codeQuizExplainer.quizMe', async () => {
+        console.log('🚀 QUIZ COMMAND TRIGGERED!');
         const activeEditor = vscode.window.activeTextEditor;
         
         if (!activeEditor) {
@@ -41,12 +49,16 @@ export function activate(context: vscode.ExtensionContext) {
         try {
             // Get file extension for language detection
             const fileExtension = activeEditor.document.fileName.split('.').pop() || '';
+            console.log('🚀 Generating quiz for code length:', code.length, 'extension:', fileExtension);
             
             // Generate quiz questions for the code
             const quiz = await quizGenerator.generateQuiz(code, fileExtension);
+            console.log('🚀 Quiz generated:', quiz.title, 'Questions:', quiz.totalQuestions);
             
             // Show the quiz in a webview panel
+            console.log('🚀 Showing quiz panel...');
             await uiManager.showQuizPanel(quiz, code);
+            console.log('🚀 Quiz panel shown successfully');
             
         } catch (error) {
             vscode.window.showErrorMessage(`Error generating quiz: ${error}`);
@@ -54,7 +66,9 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Register the "Explain This Code" command
+    console.log('🚀 Registering explainCode command...');
     const explainCommand = vscode.commands.registerCommand('codeQuizExplainer.explainCode', async () => {
+        console.log('🚀 EXPLAIN COMMAND TRIGGERED!');
         const activeEditor = vscode.window.activeTextEditor;
         
         if (!activeEditor) {
@@ -76,12 +90,16 @@ export function activate(context: vscode.ExtensionContext) {
         try {
             // Get file extension for language detection
             const fileExtension = activeEditor.document.fileName.split('.').pop() || '';
+            console.log('🚀 Generating explanation for code length:', code.length, 'extension:', fileExtension);
             
             // Generate explanation for the code
             const explanation = await codeExplainer.explainCode(code, fileExtension);
+            console.log('🚀 Explanation generated:', explanation.title, 'Lines:', explanation.lineByLineExplanations.length);
             
             // Show the explanation in a webview panel
+            console.log('🚀 Showing explanation panel...');
             await uiManager.showExplanationPanel(explanation, code);
+            console.log('🚀 Explanation panel shown successfully');
             
         } catch (error) {
             vscode.window.showErrorMessage(`Error generating explanation: ${error}`);
@@ -94,8 +112,121 @@ export function activate(context: vscode.ExtensionContext) {
     // Set up poke feature (blocks pasting if enabled)
     setupPokeFeature(context, quizGenerator, codeExplainer, uiManager);
 
-    // Add commands to the context so they can be disposed when extension is deactivated
-    context.subscriptions.push(quizCommand, explainCommand);
+    // Register a test command for debugging poke functionality
+    const testPokeCommand = vscode.commands.registerCommand('codeQuizExplainer.testPoke', async () => {
+        console.log('🔍 Test poke command triggered');
+        const testCode = `function hello() {
+    console.log("Hello, World!");
+}`;
+        
+        try {
+            const action = await uiManager.showPokeModal(testCode);
+            console.log('🔍 Test poke modal returned:', action);
+            
+            if (action === 'paste') {
+                const success = await pasteTextToEditor(testCode);
+                console.log('🔍 Test paste result:', success);
+                if (success) {
+                    vscode.window.showInformationMessage('Test paste successful! 🎉');
+                }
+            } else if (action !== 'cancel') {
+                vscode.window.showInformationMessage(`You selected: ${action}`);
+            }
+        } catch (error) {
+            console.error('🔍 Test poke error:', error);
+            vscode.window.showErrorMessage(`Test failed: ${error}`);
+        }
+    });
+
+        // Add commands to the context so they can be disposed when extension is deactivated
+        console.log('🚀 Adding commands to subscriptions...');
+        context.subscriptions.push(quizCommand, explainCommand, testPokeCommand);
+        console.log('🚀 Extension activation completed successfully!');
+        
+    } catch (error) {
+        console.error('💥 EXTENSION ACTIVATION FAILED:', error);
+        vscode.window.showErrorMessage(`Extension activation failed: ${error}`);
+        throw error;
+    }
+}
+
+/**
+ * Helper function to reliably paste text into the active editor
+ * 
+ * Note: We use direct text insertion instead of editor.action.clipboardPasteAction
+ * because the clipboard action doesn't work reliably when called programmatically,
+ * especially after intercepting the original paste command.
+ */
+async function pasteTextToEditor(text: string, targetDocumentUri?: vscode.Uri, targetPosition?: vscode.Position): Promise<boolean> {
+    console.log('🔍 pasteTextToEditor called with text length:', text.length);
+    
+    let activeEditor = vscode.window.activeTextEditor;
+    console.log('🔍 Current active editor found:', !!activeEditor);
+    
+    // If no active editor but we have target info, try to find the target editor
+    if (!activeEditor && targetDocumentUri) {
+        console.log('🔍 No active editor, searching for target document:', targetDocumentUri.toString());
+        
+        // Find the editor with the target document
+        const targetEditor = vscode.window.visibleTextEditors.find(
+            editor => editor.document.uri.toString() === targetDocumentUri.toString()
+        );
+        
+        if (targetEditor) {
+            console.log('🔍 Found target editor in visible editors');
+            activeEditor = targetEditor;
+            
+            // Try to focus the target editor
+            await vscode.window.showTextDocument(targetEditor.document, targetEditor.viewColumn);
+            console.log('🔍 Focused target editor');
+        }
+    }
+    
+    if (!activeEditor) {
+        console.log('🔍 No active editor available and could not find target');
+        vscode.window.showErrorMessage('No active editor found. Please click in a file first.');
+        return false;
+    }
+    
+    try {
+        // Check if the editor is still valid
+        if (activeEditor.document.isClosed) {
+            console.log('🔍 Active editor document is closed');
+            vscode.window.showErrorMessage('The target file is closed. Please open a file first.');
+            return false;
+        }
+        
+        // Use target position if provided, otherwise use current cursor position
+        const position = targetPosition || activeEditor.selection.active;
+        console.log('🔍 Inserting at position:', position.line, position.character, 
+                    targetPosition ? '(from target)' : '(current cursor)');
+        
+        // Direct text insertion - most reliable method
+        const success = await activeEditor.edit(editBuilder => {
+            editBuilder.insert(position, text);
+        });
+        
+        if (success) {
+            // Move cursor to end of inserted text
+            const lines = text.split('\n');
+            const lastLine = lines[lines.length - 1];
+            const newPosition = new vscode.Position(
+                position.line + lines.length - 1,
+                lines.length === 1 ? position.character + lastLine.length : lastLine.length
+            );
+            activeEditor.selection = new vscode.Selection(newPosition, newPosition);
+            console.log('🔍 Text inserted successfully, cursor moved to:', newPosition.line, newPosition.character);
+            return true;
+        } else {
+            console.log('🔍 Edit operation returned false');
+            vscode.window.showErrorMessage('Failed to paste code - edit operation was rejected');
+            return false;
+        }
+    } catch (error) {
+        console.error('🔍 Error during paste operation:', error);
+        vscode.window.showErrorMessage(`Failed to paste code: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return false;
+    }
 }
 
 /**
@@ -160,10 +291,13 @@ function setupPokeFeature(
 ) {
     // Register a custom paste command that intercepts the default paste
     const pokeCommand = vscode.commands.registerCommand('codeQuizExplainer.pokePaste', async () => {
+        console.log('🔍 Poke command triggered');
         const config = vscode.workspace.getConfiguration('codeQuizExplainer');
         const pokeEnabled = config.get<boolean>('poke', false);
+        console.log('🔍 Poke enabled:', pokeEnabled);
         
         if (!pokeEnabled) {
+            console.log('🔍 Poke disabled, doing normal paste');
             // If poke is disabled, just do normal paste
             await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
             return;
@@ -190,37 +324,38 @@ function setupPokeFeature(
                 return;
             }
 
-            // Show poke notification (red/warning style) - encourages quiz but allows bypass
-            const action = await vscode.window.showWarningMessage(
-                `🧠 Found code in clipboard (${clipboardText.length} chars). Do you understand it?`,
-                'Take Quiz First 🧠',
-                'Explain & Quiz 📚',
-                'Paste Anyway 📋'
-            );
+            // Store target document info before showing modal
+            const targetEditor = vscode.window.activeTextEditor;
+            const targetDocumentUri = targetEditor?.document.uri;
+            const targetPosition = targetEditor?.selection.active;
+            console.log('Target editor info:', {
+                hasEditor: !!targetEditor,
+                documentUri: targetDocumentUri?.toString(),
+                position: targetPosition ? `${targetPosition.line}:${targetPosition.character}` : 'none'
+            });
+
+            // Show poke modal - encourages quiz but allows bypass
+            const action = await uiManager.showPokeModal(clipboardText);
+            console.log('Poke modal returned action:', action);
 
             switch (action) {
-                case 'Take Quiz First 🧠':
+                case 'quiz':
                     try {
                         const quiz = await quizGenerator.generateQuiz(clipboardText);
                         await uiManager.showQuizPanel(quiz, clipboardText);
                         
                         // After quiz, automatically paste (they proved they understand)
-                        const activeEditor = vscode.window.activeTextEditor;
-                        if (activeEditor) {
-                            const position = activeEditor.selection.active;
-                            await activeEditor.edit(editBuilder => {
-                                editBuilder.insert(position, clipboardText);
-                            });
+                        console.log('🎯 Quiz completed, attempting paste...');
+                        const pasteSuccess = await pasteTextToEditor(clipboardText, targetDocumentUri, targetPosition);
+                        if (pasteSuccess) {
                             vscode.window.showInformationMessage('Great job! Code pasted successfully. 🎉');
-                        } else {
-                            vscode.window.showErrorMessage('No active editor to paste into.');
                         }
                     } catch (error) {
                         vscode.window.showErrorMessage(`Error generating quiz: ${error}`);
                     }
                     break;
 
-                case 'Explain & Quiz 📚':
+                case 'explain-quiz':
                     try {
                         // First show explanation
                         const explanation = await codeExplainer.explainCode(clipboardText);
@@ -238,15 +373,9 @@ function setupPokeFeature(
                             await uiManager.showQuizPanel(quiz, clipboardText);
                             
                             // After quiz, automatically paste
-                            const activeEditor2 = vscode.window.activeTextEditor;
-                            if (activeEditor2) {
-                                const position = activeEditor2.selection.active;
-                                await activeEditor2.edit(editBuilder => {
-                                    editBuilder.insert(position, clipboardText);
-                                });
+                            const pasteSuccess = await pasteTextToEditor(clipboardText, targetDocumentUri, targetPosition);
+                            if (pasteSuccess) {
                                 vscode.window.showInformationMessage('Excellent! Code pasted successfully. 🎉');
-                            } else {
-                                vscode.window.showErrorMessage('No active editor to paste into.');
                             }
                         }
                     } catch (error) {
@@ -254,26 +383,27 @@ function setupPokeFeature(
                     }
                     break;
 
-                case 'Paste Anyway 📋':
-                    try {
-                        const activeEditor = vscode.window.activeTextEditor;
-                        if (activeEditor) {
-                            const position = activeEditor.selection.active;
-                            await activeEditor.edit(editBuilder => {
-                                editBuilder.insert(position, clipboardText);
-                            });
-                            vscode.window.showInformationMessage('Code pasted! 📋');
-                        } else {
-                            vscode.window.showErrorMessage('No active editor to paste into.');
-                        }
-                    } catch (error) {
-                        console.error('Error pasting:', error);
-                        vscode.window.showErrorMessage(`Error pasting: ${error}`);
+                case 'paste':
+                    console.log('🔴 Processing PASTE ANYWAY action, clipboard text length:', clipboardText.length);
+                    console.log('🔴 Target info for paste anyway:', {
+                        hasTargetUri: !!targetDocumentUri,
+                        targetUri: targetDocumentUri?.toString(),
+                        hasTargetPosition: !!targetPosition,
+                        targetPosition: targetPosition ? `${targetPosition.line}:${targetPosition.character}` : 'none'
+                    });
+                    const pasteSuccess = await pasteTextToEditor(clipboardText, targetDocumentUri, targetPosition);
+                    if (pasteSuccess) {
+                        vscode.window.showInformationMessage('Code pasted successfully! 📋');
+                        console.log('🔴 Paste anyway completed successfully');
+                    } else {
+                        console.log('🔴 Paste anyway FAILED');
                     }
                     break;
 
+                case 'cancel':
                 default:
-                    // User cancelled, don't paste
+                    // User cancelled or closed modal, don't paste
+                    console.log('User cancelled or closed poke modal');
                     break;
             }
 
@@ -286,12 +416,16 @@ function setupPokeFeature(
 
     // Register keybinding to override default paste when poke is enabled
     const pasteKeybinding = vscode.commands.registerCommand('codeQuizExplainer.interceptPaste', async () => {
+        console.log('🔍 Intercept paste command triggered');
         const config = vscode.workspace.getConfiguration('codeQuizExplainer');
         const pokeEnabled = config.get<boolean>('poke', false);
+        console.log('🔍 Poke enabled in intercept:', pokeEnabled);
         
         if (pokeEnabled) {
+            console.log('🔍 Calling pokePaste command');
             await vscode.commands.executeCommand('codeQuizExplainer.pokePaste');
         } else {
+            console.log('🔍 Doing normal paste');
             await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
         }
     });

@@ -22,6 +22,15 @@ export class UIManager {
      * Show a quiz in a modern, animated WebView panel
      */
     async showQuizPanel(quiz: Quiz, originalCode: string): Promise<void> {
+        console.log('🚀 UIManager.showQuizPanel called with quiz:', quiz.title, 'Questions:', quiz.totalQuestions);
+        
+        // Safety check
+        if (!quiz.questions || quiz.questions.length === 0) {
+            console.error('🚀 Quiz has no questions!');
+            vscode.window.showErrorMessage('Quiz generation failed: No questions were generated');
+            return;
+        }
+        
         const panel = vscode.window.createWebviewPanel(
             'codeQuiz',
             '🧠 Code Quiz Challenge',
@@ -33,7 +42,9 @@ export class UIManager {
             }
         );
 
+        console.log('🚀 Generating HTML for quiz...');
         panel.webview.html = this.generateModernQuizHTML(quiz, originalCode);
+        console.log('🚀 Quiz HTML generated and assigned to panel');
 
         panel.webview.onDidReceiveMessage(
             message => {
@@ -46,9 +57,6 @@ export class UIManager {
                         break;
                     case 'nextQuestion':
                         this.showNextQuestion(panel, message.questionIndex, quiz);
-                        break;
-                    case 'restartQuiz':
-                        panel.webview.html = this.generateModernQuizHTML(quiz, originalCode);
                         break;
                     case 'playSound':
                         // Could integrate with VS Code's audio capabilities
@@ -64,6 +72,15 @@ export class UIManager {
      * Show a code explanation in a modern, interactive WebView panel
      */
     async showExplanationPanel(explanation: CodeExplanation, originalCode: string): Promise<void> {
+        console.log('🚀 UIManager.showExplanationPanel called with explanation:', explanation.title, 'Lines:', explanation.lineByLineExplanations?.length);
+        
+        // Safety check
+        if (!explanation.lineByLineExplanations || explanation.lineByLineExplanations.length === 0) {
+            console.error('🚀 Explanation has no line explanations!');
+            vscode.window.showErrorMessage('Explanation generation failed: No explanations were generated');
+            return;
+        }
+        
         const panel = vscode.window.createWebviewPanel(
             'codeExplanation',
             '📚 Code Explanation',
@@ -75,7 +92,9 @@ export class UIManager {
             }
         );
 
+        console.log('🚀 Generating HTML for explanation...');
         panel.webview.html = this.generateModernExplanationHTML(explanation, originalCode);
+        console.log('🚀 Explanation HTML generated and assigned to panel');
 
         panel.webview.onDidReceiveMessage(
             message => {
@@ -91,6 +110,69 @@ export class UIManager {
             undefined,
             this.context.subscriptions
         );
+    }
+
+    /**
+     * Show a poke modal when user tries to paste code
+     * Returns the user's choice: 'quiz', 'explain-quiz', 'paste', or 'cancel'
+     */
+    async showPokeModal(clipboardText: string): Promise<'quiz' | 'explain-quiz' | 'paste' | 'cancel'> {
+        return new Promise((resolve) => {
+            let resolved = false; // Flag to prevent double resolution
+            
+            const panel = vscode.window.createWebviewPanel(
+                'pokeModal',
+                '🧠 Code Detected',
+                {
+                    viewColumn: vscode.ViewColumn.Active,
+                    preserveFocus: true
+                },
+                {
+                    enableScripts: true,
+                    retainContextWhenHidden: false,
+                    localResourceRoots: [this.context.extensionUri]
+                }
+            );
+
+            panel.webview.html = this.generatePokeModalHTML(clipboardText);
+
+            // Handle disposal - only resolve if not already resolved
+            panel.onDidDispose(() => {
+                if (!resolved) {
+                    resolved = true;
+                    resolve('cancel');
+                }
+            });
+
+            panel.webview.onDidReceiveMessage(
+                message => {
+                    console.log('Received message in poke modal:', message);
+                    if (resolved) {
+                        console.log('Already resolved, ignoring message');
+                        return;
+                    }
+                    
+                    switch (message.command) {
+                        case 'pokeAction':
+                            console.log('Processing poke action:', message.action);
+                            resolved = true;
+                            panel.dispose();
+                            resolve(message.action);
+                            break;
+                        case 'cancel':
+                            console.log('Processing cancel action');
+                            resolved = true;
+                            panel.dispose();
+                            resolve('cancel');
+                            break;
+                        default:
+                            console.log('Unknown command:', message.command);
+                    }
+                },
+                undefined,
+                this.context.subscriptions
+            );
+        });
     }
 
     /**
@@ -167,10 +249,6 @@ export class UIManager {
                     <h2 class="completion-title">Amazing Work!</h2>
                     <div class="score-display" id="scoreDisplay"></div>
                     <p class="completion-message">You've mastered this code like a pro! 🚀</p>
-                    <button class="modern-btn primary-btn pulse" onclick="restartQuiz()">
-                        <span class="btn-text">Challenge Again</span>
-                        <div class="btn-ripple"></div>
-                    </button>
                 </div>
             </div>
 
@@ -2007,17 +2085,6 @@ export class UIManager {
                 }, 200);
             }
             
-            function restartQuiz() {
-                // Add exit animation
-                document.querySelector('.quiz-complete').style.transform = 'scale(0.8)';
-                document.querySelector('.quiz-complete').style.opacity = '0';
-                
-                setTimeout(() => {
-                    vscode.postMessage({
-                        command: 'restartQuiz'
-                    });
-                }, 300);
-            }
             
             function toggleTheme() {
                 // Theme toggle functionality
@@ -2592,5 +2659,468 @@ export class UIManager {
         }
         
         return 'JavaScript'; // Default fallback
+    }
+
+    /**
+     * Generate modern HTML for poke modal
+     */
+    private generatePokeModalHTML(clipboardText: string): string {
+        const codePreview = clipboardText.length > 200 
+            ? clipboardText.substring(0, 200) + '...'
+            : clipboardText;
+        
+        const detectedLanguage = this.detectLanguage(clipboardText);
+        
+        return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Code Detected</title>
+            <style>
+                ${this.getPokeModalCSS()}
+            </style>
+        </head>
+        <body>
+            <div class="poke-modal">
+                <div class="modal-content">
+                    <div class="header">
+                        <div class="icon">🧠</div>
+                        <h1>Code Detected!</h1>
+                        <p class="subtitle">Found ${clipboardText.length} characters of ${detectedLanguage} code in your clipboard</p>
+                    </div>
+                    
+                    <div class="code-preview">
+                        <div class="preview-header">
+                            <span class="language-tag">${detectedLanguage}</span>
+                            <span class="size-tag">${clipboardText.length} chars</span>
+                        </div>
+                        <pre><code>${this.escapeHtml(codePreview)}</code></pre>
+                    </div>
+                    
+                    <div class="message">
+                        <h2>Do you understand this code?</h2>
+                        <p>Challenge yourself before pasting!</p>
+                    </div>
+                    
+                    <div class="actions">
+                        <button class="btn btn-primary" data-action="quiz" onclick="window.handleAction && window.handleAction('quiz', this)">
+                            <span class="btn-icon">🧠</span>
+                            <div class="btn-content">
+                                <div>Take Quiz First</div>
+                                <span class="btn-subtitle">Prove you understand it</span>
+                            </div>
+                        </button>
+                        
+                        <button class="btn btn-secondary" data-action="explain-quiz" onclick="window.handleAction && window.handleAction('explain-quiz', this)">
+                            <span class="btn-icon">📚</span>
+                            <div class="btn-content">
+                                <div>Explain & Quiz</div>
+                                <span class="btn-subtitle">Learn then test yourself</span>
+                            </div>
+                        </button>
+                        
+                        <button class="btn btn-warning" data-action="paste" onclick="window.handleAction && window.handleAction('paste', this)">
+                            <span class="btn-icon">📋</span>
+                            <div class="btn-content">
+                                <div>Paste Anyway</div>
+                                <span class="btn-subtitle">Skip the challenge</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <div class="footer">
+                        <button class="btn-cancel" data-action="cancel" onclick="window.handleAction && window.handleAction('cancel', this)">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            
+            <script>
+                ${this.getPokeModalJavaScript()}
+            </script>
+        </body>
+        </html>`;
+    }
+
+    /**
+     * Generate CSS for poke modal
+     */
+    private getPokeModalCSS(): string {
+        return `
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                animation: backgroundShift 10s ease-in-out infinite alternate;
+            }
+
+            @keyframes backgroundShift {
+                0% { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+                100% { background: linear-gradient(135deg, #16213e 0%, #0f3460 50%, #1a1a2e 100%); }
+            }
+
+            .poke-modal {
+                animation: modalSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            @keyframes modalSlideIn {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-50px) scale(0.9);
+                }
+                100% {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            .modal-content {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 24px;
+                padding: 40px;
+                max-width: 600px;
+                width: 90vw;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 
+                    0 32px 64px rgba(0, 0, 0, 0.4),
+                    0 16px 32px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .icon {
+                font-size: 4rem;
+                margin-bottom: 16px;
+                animation: pulse 2s ease-in-out infinite;
+            }
+
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+
+            h1 {
+                color: #ffffff;
+                font-size: 2.5rem;
+                font-weight: 700;
+                margin-bottom: 8px;
+                text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .subtitle {
+                color: rgba(255, 255, 255, 0.8);
+                font-size: 1.1rem;
+                font-weight: 400;
+            }
+
+            .code-preview {
+                background: rgba(0, 0, 0, 0.3);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+                padding: 20px;
+                margin-bottom: 30px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .preview-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .language-tag, .size-tag {
+                background: rgba(255, 215, 0, 0.2);
+                color: #ffd700;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                border: 1px solid rgba(255, 215, 0, 0.3);
+            }
+
+            .size-tag {
+                background: rgba(255, 255, 255, 0.1);
+                color: rgba(255, 255, 255, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            pre {
+                margin: 0;
+                overflow-x: auto;
+                font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+
+            code {
+                color: #e6e6e6;
+                white-space: pre;
+            }
+
+            .message {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+
+            .message h2 {
+                color: #ffffff;
+                font-size: 1.8rem;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+
+            .message p {
+                color: rgba(255, 255, 255, 0.7);
+                font-size: 1.1rem;
+            }
+
+            .actions {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                margin-bottom: 30px;
+            }
+
+            .btn {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 16px;
+                padding: 20px;
+                color: #ffffff;
+                font-size: 1.1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 16px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn:hover::before {
+                left: 100%;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+
+            .btn-primary {
+                background: linear-gradient(135deg, rgba(0, 123, 255, 0.3), rgba(0, 86, 179, 0.3));
+                border-color: rgba(0, 123, 255, 0.5);
+            }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, rgba(0, 123, 255, 0.4), rgba(0, 86, 179, 0.4));
+                border-color: rgba(0, 123, 255, 0.7);
+            }
+
+            .btn-secondary {
+                background: linear-gradient(135deg, rgba(108, 117, 125, 0.3), rgba(73, 80, 87, 0.3));
+                border-color: rgba(108, 117, 125, 0.5);
+            }
+
+            .btn-secondary:hover {
+                background: linear-gradient(135deg, rgba(108, 117, 125, 0.4), rgba(73, 80, 87, 0.4));
+                border-color: rgba(108, 117, 125, 0.7);
+            }
+
+            .btn-warning {
+                background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 143, 0, 0.3));
+                border-color: rgba(255, 193, 7, 0.5);
+            }
+
+            .btn-warning:hover {
+                background: linear-gradient(135deg, rgba(255, 193, 7, 0.4), rgba(255, 143, 0, 0.4));
+                border-color: rgba(255, 193, 7, 0.7);
+            }
+
+            .btn-icon {
+                font-size: 1.5rem;
+                min-width: 32px;
+            }
+
+            .btn-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .btn-subtitle {
+                font-size: 0.9rem;
+                font-weight: 400;
+                color: rgba(255, 255, 255, 0.7);
+                display: block;
+                margin-top: 4px;
+            }
+
+            .footer {
+                text-align: center;
+            }
+
+            .btn-cancel {
+                background: transparent;
+                border: none;
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 1rem;
+                cursor: pointer;
+                padding: 8px 16px;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            .btn-cancel:hover {
+                color: rgba(255, 255, 255, 0.8);
+                background: rgba(255, 255, 255, 0.05);
+            }
+
+            /* Responsive design */
+            @media (max-width: 768px) {
+                .modal-content {
+                    padding: 24px;
+                    margin: 16px;
+                }
+
+                h1 {
+                    font-size: 2rem;
+                }
+
+                .btn {
+                    padding: 16px;
+                    font-size: 1rem;
+                }
+
+                .btn-icon {
+                    font-size: 1.3rem;
+                }
+            }
+        `;
+    }
+
+    /**
+     * Generate JavaScript for poke modal
+     */
+    private getPokeModalJavaScript(): string {
+        return `
+            const vscode = acquireVsCodeApi();
+
+            function handleAction(action, clickedButton) {
+                console.log('Button clicked with action:', action);
+                
+                // Add visual feedback
+                if (clickedButton) {
+                    clickedButton.style.transform = 'scale(0.95)';
+                    setTimeout(() => {
+                        clickedButton.style.transform = '';
+                    }, 150);
+                }
+                
+                try {
+                    vscode.postMessage({
+                        command: 'pokeAction',
+                        action: action
+                    });
+                    console.log('Message sent successfully');
+                } catch (error) {
+                    console.error('Error sending message:', error);
+                    alert('Error: ' + error.message);
+                }
+            }
+
+            // Set up event listeners when DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM loaded, setting up event listeners');
+                
+                // Add click listeners to all buttons with data-action
+                const allButtons = document.querySelectorAll('[data-action]');
+                console.log('Found buttons with data-action:', allButtons.length);
+                
+                // Debug: Log each button found
+                allButtons.forEach((button, index) => {
+                    const action = button.getAttribute('data-action');
+                    console.log(\`Button \${index}: action="\${action}", text="\${button.textContent?.trim()}"\`);
+                });
+                
+                allButtons.forEach(button => {
+                    button.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        const action = this.getAttribute('data-action');
+                        console.log('🔥 BUTTON CLICKED! Action:', action);
+                        handleAction(action, this);
+                    });
+                });
+                
+                // Also try direct onclick as backup
+                window.handleAction = handleAction;
+            });
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    handleAction('cancel');
+                } else if (event.key === '1') {
+                    handleAction('quiz');
+                } else if (event.key === '2') {
+                    handleAction('explain-quiz');
+                } else if (event.key === '3') {
+                    handleAction('paste');
+                }
+            });
+
+            // Add entrance animation
+            window.addEventListener('load', function() {
+                console.log('Window loaded, starting entrance animation');
+                const modal = document.querySelector('.poke-modal');
+                if (modal) {
+                    modal.style.opacity = '0';
+                    modal.style.transform = 'translateY(-50px) scale(0.9)';
+                    
+                    requestAnimationFrame(() => {
+                        modal.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        modal.style.opacity = '1';
+                        modal.style.transform = 'translateY(0) scale(1)';
+                    });
+                }
+            });
+        `;
     }
 }
