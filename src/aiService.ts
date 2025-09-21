@@ -35,6 +35,20 @@ export interface AIClarifyRequest {
     detailLevel?: 'basic' | 'detailed' | 'expert';
 }
 
+export interface AIEvaluateShortAnswerRequest {
+    question: string;
+    correctAnswer: string;
+    userAnswer: string;
+    codeSnippet?: string;
+    language?: string;
+}
+
+export interface AIShortAnswerResult {
+    score: number; // 0.0 - 1.0
+    verdict: 'correct' | 'partial' | 'incorrect';
+    feedback: string;
+}
+
 export class AIService {
     private openai?: OpenAI;
     private config: AIConfig;
@@ -181,6 +195,26 @@ export class AIService {
     }
 
     /**
+     * Evaluate an open-ended short answer for similarity and quality
+     */
+    async evaluateShortAnswer(request: AIEvaluateShortAnswerRequest): Promise<AIShortAnswerResult> {
+        if (!this.isConfigured()) {
+            return this.evaluateShortAnswerFallback(request);
+        }
+
+        try {
+            const prompt = this.buildShortAnswerEvalPrompt(request);
+            if (this.config.provider === 'openai' && this.openai) {
+                return await this.generateOpenAIShortAnswerEvaluation(prompt);
+            }
+            return this.evaluateShortAnswerFallback(request);
+        } catch (error) {
+            console.error('AI short answer evaluation failed:', error);
+            return this.evaluateShortAnswerFallback(request);
+        }
+    }
+
+    /**
      * Check if AI service is properly configured
      */
     private isConfigured(): boolean {
@@ -307,6 +341,36 @@ Answer directly and concisely at a ${detailLevel} level. Use clear, structured p
     }
 
     /**
+     * Build short answer evaluation prompt
+     */
+    private buildShortAnswerEvalPrompt(req: AIEvaluateShortAnswerRequest): string {
+        const language = req.language || 'JavaScript';
+        return `You are grading a short answer for a ${language} quiz. Compare the student's answer to the reference.
+
+QUESTION:
+"""
+${req.question}
+"""
+
+REFERENCE ANSWER:
+"""
+${req.correctAnswer}
+"""
+
+STUDENT ANSWER:
+"""
+${req.userAnswer}
+"""
+
+If helpful, consider this code snippet:
+\`\`\`
+${req.codeSnippet || ''}
+\`\`\`
+
+Return strict JSON only with keys: score (0..1), verdict (correct|partial|incorrect), feedback (one short paragraph + bullet points on gaps).`;
+    }
+
+    /**
      * Generate quiz using OpenAI
      */
     private async generateOpenAIQuiz(prompt: string): Promise<any> {
@@ -406,6 +470,43 @@ Answer directly and concisely at a ${detailLevel} level. Use clear, structured p
     }
 
     /**
+     * Use OpenAI to evaluate short answer; expects strict JSON
+     */
+    private async generateOpenAIShortAnswerEvaluation(prompt: string): Promise<AIShortAnswerResult> {
+        if (!this.openai) {
+            throw new Error('OpenAI not initialized');
+        }
+        const completion = await this.openai.chat.completions.create({
+            model: this.config.model || 'gpt-4',
+            messages: [
+                { role: 'system', content: 'You are a strict auto-grader. Always return valid JSON with keys score, verdict, feedback.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.2,
+            max_tokens: 500
+        });
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('No response from OpenAI');
+        }
+        try {
+            const parsed = JSON.parse(content);
+            const score = Math.max(0, Math.min(1, Number(parsed.score)));
+            const verdict = (parsed.verdict === 'correct' || parsed.verdict === 'partial') ? parsed.verdict : 'incorrect';
+            const feedback = String(parsed.feedback || '');
+            return { score, verdict, feedback };
+        } catch (e) {
+            console.error('Failed to parse OpenAI short-answer response:', content);
+            return this.evaluateShortAnswerFallback({
+                question: '',
+                correctAnswer: '',
+                userAnswer: '',
+                codeSnippet: ''
+            });
+        }
+    }
+
+    /**
      * Fallback mock quiz generation (existing logic)
      */
     private generateMockQuiz(code: string): any {
@@ -473,6 +574,28 @@ Answer directly and concisely at a ${detailLevel} level. Use clear, structured p
                 complexity: 'simple' as const
             }
         };
+    }
+
+    /**
+     * Simple fallback evaluation using token overlap
+     */
+    private evaluateShortAnswerFallback(req: AIEvaluateShortAnswerRequest): AIShortAnswerResult {
+        const normalize = (s: string) => (s || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, ' ')
+            .split(/\s+/)
+            .filter(Boolean);
+        const a = new Set(normalize(req.correctAnswer));
+        const b = new Set(normalize(req.userAnswer));
+        let inter = 0;
+        b.forEach(w => { if (a.has(w)) inter++; });
+        const union = new Set([...Array.from(a), ...Array.from(b)]).size || 1;
+        const jaccard = inter / union;
+        let verdict: 'correct' | 'partial' | 'incorrect' = 'incorrect';
+        if (jaccard >= 0.8) verdict = 'correct'; else if (jaccard >= 0.5) verdict = 'partial';
+        const score = verdict === 'correct' ? 1 : verdict === 'partial' ? 0.5 : 0;
+        const feedback = `Similarity score: ${(jaccard * 100).toFixed(0)}%. ${verdict === 'correct' ? 'Great job.' : verdict === 'partial' ? 'You covered some key points, but missed others.' : 'Your answer diverges from the reference; consider the core concepts.'}`;
+        return { score, verdict, feedback };
     }
 
     /**

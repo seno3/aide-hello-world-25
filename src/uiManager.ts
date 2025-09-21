@@ -1566,20 +1566,20 @@ export class UIManager {
                 submitBtn.querySelector('.btn-text').style.opacity = '0';
                 submitBtn.querySelector('.btn-loading').style.opacity = '1';
                 
-                // Simulate processing time for better UX
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Check if answer is correct
-                const isCorrect = userAnswer.toLowerCase() === question.correctAnswer.toLowerCase();
-                if (isCorrect) {
-                    score++;
-                    playSuccessAnimation();
+                if (question.type === 'open-ended') {
+                    // Offload to extension for AI evaluation
+                    vscode.postMessage({ command: 'submitAnswer', questionId, answer: userAnswer });
                 } else {
-                    playErrorAnimation();
-                }
-                
-                // Show visual feedback
-                if (question.type === 'multiple-choice') {
+                    // Simulate processing time for better UX
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const isCorrect = userAnswer.toLowerCase() === question.correctAnswer.toLowerCase();
+                    if (isCorrect) {
+                        score++;
+                        playSuccessAnimation();
+                    } else {
+                        playErrorAnimation();
+                    }
+                    // Visual feedback for MCQ
                     const options = document.querySelectorAll('.option-card');
                     options.forEach(opt => {
                         if (opt.dataset.option === question.correctAnswer) {
@@ -1588,25 +1588,21 @@ export class UIManager {
                             opt.classList.add('incorrect');
                         }
                     });
+                    // Show explanation
+                    const explanation = document.getElementById('explanation-' + questionId);
+                    explanation.classList.add('show');
+                    // Update button
+                    submitBtn.querySelector('.btn-loading').style.opacity = '0';
+                    submitBtn.querySelector('.btn-text').style.opacity = '1';
+                    if (currentQuestionIndex < quiz.questions.length - 1) {
+                        submitBtn.querySelector('.btn-text').textContent = 'Next Question →';
+                        submitBtn.onclick = () => nextQuestion();
+                    } else {
+                        submitBtn.querySelector('.btn-text').textContent = 'Finish Quiz 🎉';
+                        submitBtn.onclick = () => finishQuiz();
+                    }
+                    isSubmitting = false;
                 }
-                
-                // Show explanation with animation
-                const explanation = document.getElementById('explanation-' + questionId);
-                explanation.classList.add('show');
-                
-                // Update submit button
-                submitBtn.querySelector('.btn-loading').style.opacity = '0';
-                submitBtn.querySelector('.btn-text').style.opacity = '1';
-                
-                if (currentQuestionIndex < quiz.questions.length - 1) {
-                    submitBtn.querySelector('.btn-text').textContent = 'Next Question →';
-                    submitBtn.onclick = () => nextQuestion();
-                } else {
-                    submitBtn.querySelector('.btn-text').textContent = 'Finish Quiz 🎉';
-                    submitBtn.onclick = () => finishQuiz();
-                }
-                
-                isSubmitting = false;
             }
             
             function nextQuestion() {
@@ -1997,6 +1993,24 @@ export class UIManager {
 
                 window.addEventListener('message', event => {
                     const message = event.data || {};
+                    if (message.command === 'shortAnswerEvaluation') {
+                        const questionId = message.questionId;
+                        const result = message.result || {};
+                        const feedback = document.createElement('div');
+                        feedback.className = 'clarify-item';
+                        const pct = Math.round((Number(result.score) || 0) * 100);
+                        const verdict = String(result.verdict || '').toUpperCase();
+                        const text = String(result.feedback || '');
+                        feedback.innerHTML = '<strong>Evaluation:</strong> ' + verdict + ' (score ' + pct + '%)<br/>' + text.replace(/\n/g,'<br/>');
+                        const exp = document.getElementById('explanation-' + questionId);
+                        if (exp) {
+                            exp.appendChild(feedback);
+                            exp.classList.add('show');
+                        } else {
+                            document.body.appendChild(feedback);
+                        }
+                        return;
+                    }
                     if (message.command === 'clarifyAck') {
                         // Can add any additional UX here if needed
                         return;
@@ -2070,6 +2084,31 @@ export class UIManager {
             return;
         }
         console.log(`User answered question ${questionId}: ${answer}`);
+        if (question.type === 'open-ended') {
+            const codeSnippet = question.codeSnippet || '';
+            const languageGuess = 'JavaScript';
+            const aiServiceModule = require('./aiService');
+            const aiService = new aiServiceModule.AIService();
+            aiService.evaluateShortAnswer({
+                question: question.question,
+                correctAnswer: question.correctAnswer,
+                userAnswer: answer,
+                codeSnippet,
+                language: languageGuess
+            }).then((result: any) => {
+                panel.webview.postMessage({
+                    command: 'shortAnswerEvaluation',
+                    questionId,
+                    result
+                });
+            }).catch((err: any) => {
+                panel.webview.postMessage({
+                    command: 'shortAnswerEvaluation',
+                    questionId,
+                    result: { score: 0, verdict: 'incorrect', feedback: String(err) }
+                });
+            });
+        }
     }
 
     private showNextQuestion(panel: vscode.WebviewPanel, questionIndex: number, quiz: Quiz): void {
