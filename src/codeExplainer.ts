@@ -70,6 +70,16 @@ export class CodeExplainer {
     }
 
     /**
+     * Provide a follow-up clarification using AI
+     */
+    async clarify(code: string, question: string): Promise<string> {
+        const config = vscode.workspace.getConfiguration('codeQuizExplainer');
+        const detailLevel = config.get('explanationDetail', 'detailed') as 'basic' | 'detailed' | 'expert';
+        const language = this.detectLanguage(code);
+        return this.aiService.clarifyExplanation({ code, question, language, detailLevel });
+    }
+
+    /**
      * Fallback explanation generation using rule-based approach
      */
     private generateFallbackExplanation(code: string): CodeExplanation {

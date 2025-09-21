@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize our core modules
     const quizGenerator = new QuizGenerator();
     const codeExplainer = new CodeExplainer();
-    const uiManager = new UIManager(context);
+    const uiManager = new UIManager(context, codeExplainer);
 
     // Register the "Quiz Me on This Code" command
     const quizCommand = vscode.commands.registerCommand('codeQuizExplainer.quizMe', async () => {

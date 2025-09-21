@@ -7,13 +7,15 @@
 
 import * as vscode from 'vscode';
 import { Quiz, QuizQuestion } from './quizGenerator';
-import { CodeExplanation } from './codeExplainer';
+import { CodeExplanation, CodeExplainer } from './codeExplainer';
 
 export class UIManager {
     private context: vscode.ExtensionContext;
+    private codeExplainer?: CodeExplainer;
 
-    constructor(context: vscode.ExtensionContext) {
+    constructor(context: vscode.ExtensionContext, codeExplainer?: CodeExplainer) {
         this.context = context;
+        this.codeExplainer = codeExplainer;
     }
 
     /**
@@ -80,6 +82,20 @@ export class UIManager {
                         break;
                     case 'toggleSection':
                         // Handle section toggling
+                        break;
+                    case 'clarify':
+                        if (!this.codeExplainer) {
+                            panel.webview.postMessage({ command: 'clarifyResult', error: 'Clarification not available.' });
+                            return;
+                        }
+                        (async () => {
+                            try {
+                                const answer = await this.codeExplainer!.clarify(originalCode, message.question || '');
+                                panel.webview.postMessage({ command: 'clarifyResult', answer });
+                            } catch (err: any) {
+                                panel.webview.postMessage({ command: 'clarifyResult', error: String(err) });
+                            }
+                        })();
                         break;
                 }
             },
@@ -366,6 +382,24 @@ export class UIManager {
                             </div>
                         `).join('')}
                     </div>
+                </div>
+
+                <!-- Clarification Box -->
+                <div class="clarify-card glass-card">
+                    <div class="card-header">
+                        <span class="card-icon">💬</span>
+                        <h2>Ask for Clarification</h2>
+                    </div>
+                    <p class="overview-text">Have a follow-up question? Ask the AI for more detail.</p>
+                    <div class="clarify-inputs">
+                        <textarea id="clarifyInput" class="modern-textarea" rows="3" placeholder="e.g., Can you explain how the loop condition works?"></textarea>
+                        <button id="clarifyBtn" class="modern-btn primary-btn">
+                            <span class="btn-text">Clarify with AI</span>
+                            <div class="btn-loading"><div class="loading-spinner"></div></div>
+                            <div class="btn-ripple"></div>
+                        </button>
+                    </div>
+                    <div id="clarifyResults" class="clarify-results"></div>
                 </div>
             </div>
 
@@ -1153,6 +1187,34 @@ export class UIManager {
                 margin-bottom: 30px;
             }
 
+            .clarify-card {
+                padding: 30px;
+                margin-top: 30px;
+            }
+
+            .clarify-inputs {
+                display: flex;
+                gap: 12px;
+                align-items: flex-start;
+                margin-top: 12px;
+                flex-wrap: wrap;
+            }
+
+            .clarify-results {
+                margin-top: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .clarify-item {
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+                padding: 14px;
+                line-height: 1.6;
+            }
+
             .card-header {
                 display: flex;
                 align-items: center;
@@ -1832,6 +1894,7 @@ export class UIManager {
                 animateStatsCounters();
                 setupFilterTabs();
                 setupIntersectionObserver();
+                setupClarifyBox();
             });
             
             function highlightLine(lineNumber) {
@@ -1927,6 +1990,46 @@ export class UIManager {
                 });
             }
             
+            function setupClarifyBox() {
+                const input = document.getElementById('clarifyInput');
+                const btn = document.getElementById('clarifyBtn');
+                const results = document.getElementById('clarifyResults');
+                if (!input || !btn || !results) return;
+
+                btn.addEventListener('click', async () => {
+                    const question = input.value.trim();
+                    if (!question) {
+                        showNotification('Please type a question to clarify.', 'warning');
+                        return;
+                    }
+                    btn.querySelector('.btn-text').style.opacity = '0';
+                    btn.querySelector('.btn-loading').style.opacity = '1';
+                    try {
+                        vscode.postMessage({ command: 'clarify', question });
+                    } catch (e) {
+                        showNotification('Failed to send clarification request.', 'warning');
+                    }
+                });
+
+                window.addEventListener('message', event => {
+                    const message = event.data || {};
+                    if (message.command === 'clarifyResult') {
+                        btn.querySelector('.btn-loading').style.opacity = '0';
+                        btn.querySelector('.btn-text').style.opacity = '1';
+                        if (message.error) {
+                            showNotification('Clarification failed: ' + message.error, 'warning');
+                            return;
+                        }
+                        const item = document.createElement('div');
+                        item.className = 'clarify-item';
+                        item.innerHTML = message.answer
+                            .replace(/\n/g, '<br/>');
+                        results.prepend(item);
+                        input.value = '';
+                    }
+                });
+            }
+
             function showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
                 notification.className = \`notification \${type}\`;

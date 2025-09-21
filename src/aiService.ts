@@ -28,6 +28,13 @@ export interface AIExplanationRequest {
     detailLevel?: 'basic' | 'detailed' | 'expert';
 }
 
+export interface AIClarifyRequest {
+    code: string;
+    question: string;
+    language?: string;
+    detailLevel?: 'basic' | 'detailed' | 'expert';
+}
+
 export class AIService {
     private openai?: OpenAI;
     private config: AIConfig;
@@ -146,6 +153,34 @@ export class AIService {
     }
 
     /**
+     * Provide a follow-up clarification for an existing explanation
+     */
+    async clarifyExplanation(request: AIClarifyRequest): Promise<string> {
+        if (!this.isConfigured()) {
+            console.log('AI not configured, returning mock clarification');
+            return this.generateMockClarification(request);
+        }
+
+        try {
+            const prompt = this.buildClarifyPrompt(request);
+            if (this.config.provider === 'openai' && this.openai) {
+                return await this.generateOpenAIClarification(prompt);
+            }
+            return this.generateMockClarification(request);
+        } catch (error: any) {
+            console.error('AI clarification failed:', error);
+            if (error.status === 429) {
+                vscode.window.showWarningMessage('Rate limit exceeded. Please wait a moment and try again.');
+            } else if (error.status === 401) {
+                vscode.window.showErrorMessage('Invalid OpenAI API key. Please check your settings.');
+            } else {
+                vscode.window.showWarningMessage('AI service unavailable, using fallback clarification');
+            }
+            return this.generateMockClarification(request);
+        }
+    }
+
+    /**
      * Check if AI service is properly configured
      */
     private isConfigured(): boolean {
@@ -250,6 +285,28 @@ Focus on:
     }
 
     /**
+     * Build clarification prompt
+     */
+    private buildClarifyPrompt(request: AIClarifyRequest): string {
+        const detailLevel = request.detailLevel || 'detailed';
+        const language = request.language || 'JavaScript';
+        return `
+You are an expert coding instructor. The user has a follow-up question about the following ${language} code.
+
+CODE:
+\`\`\`${language.toLowerCase()}
+${request.code}
+\`\`\`
+
+USER QUESTION:
+"""
+${request.question}
+"""
+
+Answer directly and concisely at a ${detailLevel} level. Use clear, structured paragraphs and bullet points where helpful. Do not return JSON, just the explanation text.`;
+    }
+
+    /**
      * Generate quiz using OpenAI
      */
     private async generateOpenAIQuiz(prompt: string): Promise<any> {
@@ -324,6 +381,31 @@ Focus on:
     }
 
     /**
+     * Generate clarification using OpenAI
+     */
+    private async generateOpenAIClarification(prompt: string): Promise<string> {
+        if (!this.openai) {
+            throw new Error('OpenAI not initialized');
+        }
+
+        const completion = await this.openai.chat.completions.create({
+            model: this.config.model || 'gpt-4',
+            messages: [
+                { role: 'system', content: 'You are a helpful coding instructor. Answer clearly and concisely.' },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.3,
+            max_tokens: 800
+        });
+
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('No response from OpenAI');
+        }
+        return content.trim();
+    }
+
+    /**
      * Fallback mock quiz generation (existing logic)
      */
     private generateMockQuiz(code: string): any {
@@ -391,6 +473,13 @@ Focus on:
                 complexity: 'simple' as const
             }
         };
+    }
+
+    /**
+     * Fallback mock clarification
+     */
+    private generateMockClarification(request: AIClarifyRequest): string {
+        return `Here is a clarification for your question: "${request.question}"\n\n- The code operates over ${request.language || 'JavaScript'} constructs.\n- Think about inputs, outputs, and side effects in each function.\n- Focus on how data flows between variables and functions.`;
     }
 
     /**
