@@ -184,58 +184,86 @@ function setupPokeFeature(
                 return;
             }
 
-            // Show poke modal with explanation and quiz options
+            // Show poke notification (red/warning style) - encourages quiz but allows bypass
             const action = await vscode.window.showWarningMessage(
-                `🤔 Whoa there! You're about to paste ${clipboardText.length} characters of code. Let's learn about it first!`,
-                { modal: true },
-                'Explain First 📚',
-                'Quiz Me First 🧠', 
-                'Just Paste 📋'
+                `🧠 Found code in clipboard (${clipboardText.length} chars). Do you understand it?`,
+                'Take Quiz First 🧠',
+                'Explain & Quiz 📚',
+                'Paste Anyway 📋'
             );
 
             switch (action) {
-                case 'Explain First 📚':
-                    try {
-                        const explanation = await codeExplainer.explainCode(clipboardText);
-                        await uiManager.showExplanationPanel(explanation, clipboardText);
-                        
-                        // After explanation, ask if they want to paste
-                        const pasteAfter = await vscode.window.showInformationMessage(
-                            'Now that you understand the code, ready to paste?',
-                            'Yes, Paste It! 📋',
-                            'Cancel'
-                        );
-                        
-                        if (pasteAfter === 'Yes, Paste It! 📋') {
-                            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
-                        }
-                    } catch (error) {
-                        vscode.window.showErrorMessage(`Error explaining code: ${error}`);
-                    }
-                    break;
-
-                case 'Quiz Me First 🧠':
+                case 'Take Quiz First 🧠':
                     try {
                         const quiz = await quizGenerator.generateQuiz(clipboardText);
                         await uiManager.showQuizPanel(quiz, clipboardText);
                         
-                        // After quiz, ask if they want to paste
-                        const pasteAfter = await vscode.window.showInformationMessage(
-                            'Great job on the quiz! Ready to paste the code?',
-                            'Yes, Paste It! 📋',
-                            'Cancel'
-                        );
-                        
-                        if (pasteAfter === 'Yes, Paste It! 📋') {
-                            await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                        // After quiz, automatically paste (they proved they understand)
+                        const activeEditor = vscode.window.activeTextEditor;
+                        if (activeEditor) {
+                            const position = activeEditor.selection.active;
+                            await activeEditor.edit(editBuilder => {
+                                editBuilder.insert(position, clipboardText);
+                            });
+                            vscode.window.showInformationMessage('Great job! Code pasted successfully. 🎉');
+                        } else {
+                            vscode.window.showErrorMessage('No active editor to paste into.');
                         }
                     } catch (error) {
                         vscode.window.showErrorMessage(`Error generating quiz: ${error}`);
                     }
                     break;
 
-                case 'Just Paste 📋':
-                    await vscode.commands.executeCommand('editor.action.clipboardPasteAction');
+                case 'Explain & Quiz 📚':
+                    try {
+                        // First show explanation
+                        const explanation = await codeExplainer.explainCode(clipboardText);
+                        await uiManager.showExplanationPanel(explanation, clipboardText);
+                        
+                        // Then require quiz to paste
+                        const takeQuiz = await vscode.window.showInformationMessage(
+                            'Now that you\'ve read the explanation, take the quiz to paste!',
+                            'Take Quiz 🧠',
+                            'Cancel'
+                        );
+                        
+                        if (takeQuiz === 'Take Quiz 🧠') {
+                            const quiz = await quizGenerator.generateQuiz(clipboardText);
+                            await uiManager.showQuizPanel(quiz, clipboardText);
+                            
+                            // After quiz, automatically paste
+                            const activeEditor2 = vscode.window.activeTextEditor;
+                            if (activeEditor2) {
+                                const position = activeEditor2.selection.active;
+                                await activeEditor2.edit(editBuilder => {
+                                    editBuilder.insert(position, clipboardText);
+                                });
+                                vscode.window.showInformationMessage('Excellent! Code pasted successfully. 🎉');
+                            } else {
+                                vscode.window.showErrorMessage('No active editor to paste into.');
+                            }
+                        }
+                    } catch (error) {
+                        vscode.window.showErrorMessage(`Error: ${error}`);
+                    }
+                    break;
+
+                case 'Paste Anyway 📋':
+                    try {
+                        const activeEditor = vscode.window.activeTextEditor;
+                        if (activeEditor) {
+                            const position = activeEditor.selection.active;
+                            await activeEditor.edit(editBuilder => {
+                                editBuilder.insert(position, clipboardText);
+                            });
+                            vscode.window.showInformationMessage('Code pasted! 📋');
+                        } else {
+                            vscode.window.showErrorMessage('No active editor to paste into.');
+                        }
+                    } catch (error) {
+                        console.error('Error pasting:', error);
+                        vscode.window.showErrorMessage(`Error pasting: ${error}`);
+                    }
                     break;
 
                 default:
