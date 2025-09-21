@@ -86,27 +86,6 @@ export class UIManager {
                     case 'toggleSection':
                         // Handle section toggling
                         break;
-                    case 'clarify':
-                        console.log('Clarify request received:', message.question);
-                        // Acknowledge receipt to the webview
-                        panel.webview.postMessage({ command: 'clarifyAck' });
-                        if (!this.codeExplainer) {
-                            console.log('CodeExplainer not available');
-                            panel.webview.postMessage({ command: 'clarifyResult', error: 'Clarification not available.' });
-                            return;
-                        }
-                        console.log('Processing clarification with AI...');
-                        (async () => {
-                            try {
-                                const answer = await this.codeExplainer!.clarify(originalCode, message.question || '');
-                                console.log('Clarification answer received:', answer.substring(0, 100) + '...');
-                                panel.webview.postMessage({ command: 'clarifyResult', answer });
-                            } catch (err: any) {
-                                console.error('Clarification error:', err);
-                                panel.webview.postMessage({ command: 'clarifyResult', error: String(err) });
-                            }
-                        })();
-                        break;
                 }
             },
             undefined,
@@ -373,21 +352,6 @@ export class UIManager {
                     <p class="overview-text">${explanation.overview}</p>
                 </div>
 
-                <!-- AI Clarifying Questions -->
-                <div class="clarify-section glass-card slide-in">
-                    <div class="card-header">
-                        <span class="card-icon">💬</span>
-                        <h2>Ask AI for Clarification</h2>
-                    </div>
-                    <div class="clarify-input-container">
-                        <input type="text" id="clarifyInput" class="clarify-input" placeholder="Ask a follow-up question about this code..." />
-                        <button id="clarifyBtn" class="clarify-send-btn">
-                            <span class="send-text">Ask</span>
-                            <div class="btn-loading"><div class="loading-spinner"></div></div>
-                        </button>
-                    </div>
-                    <div id="clarifyResponse" class="clarify-response"></div>
-                </div>
 
                 <!-- Stats Dashboard removed per request -->
 
@@ -1362,79 +1326,6 @@ export class UIManager {
                 margin-bottom: 20px;
             }
 
-            .clarify-section {
-                padding: 20px;
-                margin-bottom: 20px;
-            }
-
-            .clarify-input-container {
-                display: flex;
-                gap: 12px;
-                margin-top: 15px;
-                align-items: center;
-            }
-
-            .clarify-input {
-                flex: 1;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                border-radius: 8px;
-                padding: 12px 16px;
-                color: white;
-                font-size: 14px;
-                outline: none;
-                transition: all 0.3s ease;
-            }
-
-            .clarify-input:focus {
-                border-color: var(--primary-color);
-                background: rgba(255, 255, 255, 0.08);
-                box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
-            }
-
-            .clarify-send-btn {
-                background: linear-gradient(135deg, var(--primary-color), #e6c200);
-                border: none;
-                border-radius: 8px;
-                padding: 12px 20px;
-                color: #000;
-                font-weight: 600;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                position: relative;
-                min-width: 80px;
-            }
-
-            .clarify-send-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
-            }
-
-            .clarify-response {
-                margin-top: 15px;
-                padding: 15px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
-                line-height: 1.6;
-                display: none;
-            }
-
-            .clarify-response.show {
-                display: block;
-                animation: fadeInUp 0.4s ease-out;
-            }
-
-            @keyframes fadeInUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
 
             .card-header {
                 display: flex;
@@ -2258,7 +2149,6 @@ export class UIManager {
             document.addEventListener('DOMContentLoaded', function() {
                 animateStatsCounters();
                 setupIntersectionObserver();
-                setupClarifyQuestions();
             });
             
             function highlightLine(lineNumber) {
@@ -2444,110 +2334,6 @@ export class UIManager {
                 });
             }
             
-            function setupClarifyQuestions() {
-                const input = document.getElementById('clarifyInput');
-                const btn = document.getElementById('clarifyBtn');
-                const response = document.getElementById('clarifyResponse');
-                
-                if (!input || !btn || !response) {
-                    console.error('Clarify elements not found:', { input: !!input, btn: !!btn, response: !!response });
-                    return;
-                }
-                
-                console.log('Clarify questions setup complete');
-                let isProcessing = false;
-                
-                const sendQuestion = async () => {
-                    const question = input.value.trim();
-                    console.log('Sending question:', question);
-                    
-                    if (!question || isProcessing) return;
-                    
-                    isProcessing = true;
-                    
-                    // Show loading state
-                    const sendText = btn.querySelector('.send-text');
-                    const loading = btn.querySelector('.btn-loading');
-                    if (sendText) sendText.style.opacity = '0';
-                    if (loading) loading.style.opacity = '1';
-                    
-                    // Hide previous response
-                    response.classList.remove('show');
-                    
-                    try {
-                        console.log('Posting message to extension...');
-                        vscode.postMessage({ command: 'clarify', question });
-                        
-                        // Timeout after 15 seconds
-                        setTimeout(() => {
-                            if (isProcessing) {
-                                console.log('Clarify request timed out');
-                                showResponse('Request timed out. Please try again.');
-                                resetButton();
-                            }
-                        }, 15000);
-                        
-                    } catch (error) {
-                        console.error('Failed to send clarify message:', error);
-                        showResponse('Failed to send question. Please try again.');
-                        resetButton();
-                    }
-                };
-                
-                const showResponse = (text) => {
-                    console.log('Showing response:', text.substring(0, 100) + '...');
-                    response.innerHTML = text.replace(/\n/g, '<br/>');
-                    response.classList.add('show');
-                };
-                
-                const resetButton = () => {
-                    console.log('Resetting button state');
-                    isProcessing = false;
-                    const sendText = btn.querySelector('.send-text');
-                    const loading = btn.querySelector('.btn-loading');
-                    if (sendText) sendText.style.opacity = '1';
-                    if (loading) loading.style.opacity = '0';
-                };
-                
-                // Event listeners
-                btn.addEventListener('click', sendQuestion);
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        sendQuestion();
-                    }
-                });
-                
-                console.log('Setting up clarify message listener');
-            }
-            
-            // Global message listener for clarify responses (like quiz does)
-            window.addEventListener('message', event => {
-                const message = event.data || {};
-                console.log('Received message:', message.command);
-                
-                if (message.command === 'clarifyResult') {
-                    console.log('Clarify result received:', message);
-                    const response = document.getElementById('clarifyResponse');
-                    const btn = document.getElementById('clarifyBtn');
-                    
-                    if (response && btn) {
-                        const answer = message.error || message.answer || 'No response received.';
-                        response.innerHTML = answer.replace(/\n/g, '<br/>');
-                        response.classList.add('show');
-                        
-                        // Reset button
-                        const sendText = btn.querySelector('.send-text');
-                        const loading = btn.querySelector('.btn-loading');
-                        if (sendText) sendText.style.opacity = '1';
-                        if (loading) loading.style.opacity = '0';
-                        
-                        // Clear input
-                        const input = document.getElementById('clarifyInput');
-                        if (input) input.value = '';
-                    }
-                }
-            });
             
             function showNotification(message, type = 'info') {
                 const notification = document.createElement('div');
