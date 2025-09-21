@@ -345,29 +345,17 @@ Answer directly and concisely at a ${detailLevel} level. Use clear, structured p
      */
     private buildShortAnswerEvalPrompt(req: AIEvaluateShortAnswerRequest): string {
         const language = req.language || 'JavaScript';
-        return `You are grading a short answer for a ${language} quiz. Compare the student's answer to the reference.
+        return `Grade this ${language} quiz answer LENIENTLY. Accept variations, synonyms, and different phrasings that convey the same meaning.
 
-QUESTION:
-"""
-${req.question}
-"""
+QUESTION: ${req.question}
 
-REFERENCE ANSWER:
-"""
-${req.correctAnswer}
-"""
+REFERENCE: ${req.correctAnswer}
 
-STUDENT ANSWER:
-"""
-${req.userAnswer}
-"""
+STUDENT: ${req.userAnswer}
 
-If helpful, consider this code snippet:
-\`\`\`
-${req.codeSnippet || ''}
-\`\`\`
+Be generous - if the student shows understanding of the core concept, give partial or full credit even if wording differs. Focus on meaning over exact phrasing.
 
-Return strict JSON only with keys: score (0..1), verdict (correct|partial|incorrect), feedback (one short paragraph + bullet points on gaps).`;
+Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": "brief encouraging comment"}`;
     }
 
     /**
@@ -477,13 +465,15 @@ Return strict JSON only with keys: score (0..1), verdict (correct|partial|incorr
             throw new Error('OpenAI not initialized');
         }
         const completion = await this.openai.chat.completions.create({
-            model: this.config.model || 'gpt-4',
+            model: 'gpt-3.5-turbo', // Faster model for speed
             messages: [
-                { role: 'system', content: 'You are a strict auto-grader. Always return valid JSON with keys score, verdict, feedback.' },
+                { role: 'system', content: 'You are a lenient, encouraging quiz grader. Always return valid JSON with keys score, verdict, feedback. Be generous with partial credit.' },
                 { role: 'user', content: prompt }
             ],
-            temperature: 0.2,
-            max_tokens: 500
+            temperature: 0.1, // Lower for consistency
+            max_tokens: 200 // Reduced for speed
+        }, {
+            timeout: 15000 // 15 second timeout for speed
         });
         const content = completion.choices[0]?.message?.content;
         if (!content) {
@@ -580,21 +570,56 @@ Return strict JSON only with keys: score (0..1), verdict (correct|partial|incorr
      * Simple fallback evaluation using token overlap
      */
     private evaluateShortAnswerFallback(req: AIEvaluateShortAnswerRequest): AIShortAnswerResult {
+        // More lenient normalization that preserves more meaning
         const normalize = (s: string) => (s || '')
             .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
+            .replace(/[^\w\s]/g, ' ') // Keep more characters
             .split(/\s+/)
-            .filter(Boolean);
-        const a = new Set(normalize(req.correctAnswer));
-        const b = new Set(normalize(req.userAnswer));
-        let inter = 0;
-        b.forEach(w => { if (a.has(w)) inter++; });
-        const union = new Set([...Array.from(a), ...Array.from(b)]).size || 1;
-        const jaccard = inter / union;
+            .filter(w => w.length > 1); // Filter out single chars but keep meaningful words
+        
+        const correctWords = new Set(normalize(req.correctAnswer));
+        const userWords = new Set(normalize(req.userAnswer));
+        
+        // Calculate overlap more generously
+        let matches = 0;
+        userWords.forEach(word => {
+            if (correctWords.has(word)) {
+                matches++;
+            } else {
+                // Check for partial matches (contains or is contained)
+                for (const correctWord of correctWords) {
+                    if (word.includes(correctWord) || correctWord.includes(word)) {
+                        matches += 0.5; // Partial credit for similar words
+                        break;
+                    }
+                }
+            }
+        });
+        
+        const maxPossible = Math.max(correctWords.size, userWords.size, 1);
+        const similarity = matches / maxPossible;
+        
+        // More lenient thresholds
         let verdict: 'correct' | 'partial' | 'incorrect' = 'incorrect';
-        if (jaccard >= 0.8) verdict = 'correct'; else if (jaccard >= 0.5) verdict = 'partial';
-        const score = verdict === 'correct' ? 1 : verdict === 'partial' ? 0.5 : 0;
-        const feedback = `Similarity score: ${(jaccard * 100).toFixed(0)}%. ${verdict === 'correct' ? 'Great job.' : verdict === 'partial' ? 'You covered some key points, but missed others.' : 'Your answer diverges from the reference; consider the core concepts.'}`;
+        let score = 0;
+        
+        if (similarity >= 0.6) { // Lowered from 0.8
+            verdict = 'correct';
+            score = 1;
+        } else if (similarity >= 0.3) { // Lowered from 0.5
+            verdict = 'partial';
+            score = 0.7; // More generous partial credit
+        } else if (userWords.size > 0) { // Give some credit for any attempt
+            verdict = 'partial';
+            score = 0.3;
+        }
+        
+        const feedback = verdict === 'correct' 
+            ? 'Great job! Your answer captures the key concepts.' 
+            : verdict === 'partial' 
+            ? 'Good effort! You got some key points right.' 
+            : 'Keep trying! Think about the main concepts.';
+            
         return { score, verdict, feedback };
     }
 
