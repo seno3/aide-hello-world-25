@@ -345,7 +345,7 @@ export class UIManager {
                 <div class="stats-dashboard">
                     <div class="stat-card glass-card" style="--delay: 0.1s">
                         <div class="stat-icon">📝</div>
-                        <div class="stat-number" data-target="${explanation.summary.totalLines}">0</div>
+                        <div class="stat-number" data-target="${explanation.lineByLineExplanations.length}">0</div>
                         <div class="stat-label">Lines of Code</div>
                     </div>
                     <div class="stat-card glass-card" style="--delay: 0.2s">
@@ -1950,6 +1950,9 @@ export class UIManager {
                 const results = document.getElementById('clarifyResults');
                 if (!input || !btn || !results) return;
 
+                let pendingTimer = null;
+                let lastPendingId = null;
+
                 btn.addEventListener('click', async () => {
                     const question = input.value.trim();
                     if (!question) {
@@ -1958,27 +1961,58 @@ export class UIManager {
                     }
                     btn.querySelector('.btn-text').style.opacity = '0';
                     btn.querySelector('.btn-loading').style.opacity = '1';
+                    // Add a pending placeholder so users see immediate feedback
+                    lastPendingId = 'pending-' + Date.now();
+                    const pending = document.createElement('div');
+                    pending.className = 'clarify-item';
+                    pending.id = lastPendingId;
+                    pending.textContent = 'Asking AI…';
+                    results.prepend(pending);
                     try {
                         vscode.postMessage({ command: 'clarify', question });
+                        // Fallback timeout to restore button state and show error if no response
+                        pendingTimer = setTimeout(() => {
+                            btn.querySelector('.btn-loading').style.opacity = '0';
+                            btn.querySelector('.btn-text').style.opacity = '1';
+                            const item = document.getElementById(lastPendingId);
+                            if (item) {
+                                item.textContent = 'No response received. Please try again.';
+                            }
+                        }, 15000);
                     } catch (e) {
                         showNotification('Failed to send clarification request.', 'warning');
+                        const item = document.getElementById(lastPendingId);
+                        if (item) {
+                            item.textContent = 'Failed to send clarification request.';
+                        }
                     }
                 });
 
                 window.addEventListener('message', event => {
                     const message = event.data || {};
                     if (message.command === 'clarifyResult') {
+                        if (pendingTimer) {
+                            clearTimeout(pendingTimer);
+                            pendingTimer = null;
+                        }
                         btn.querySelector('.btn-loading').style.opacity = '0';
                         btn.querySelector('.btn-text').style.opacity = '1';
                         if (message.error) {
                             showNotification('Clarification failed: ' + message.error, 'warning');
+                            const item = document.getElementById(lastPendingId);
+                            if (item) {
+                                item.textContent = 'Clarification failed: ' + message.error;
+                            }
                             return;
                         }
-                        const item = document.createElement('div');
-                        item.className = 'clarify-item';
-                        item.innerHTML = message.answer
+                        let item = document.getElementById(lastPendingId);
+                        if (!item) {
+                            item = document.createElement('div');
+                            item.className = 'clarify-item';
+                            results.prepend(item);
+                        }
+                        item.innerHTML = String(message.answer || '')
                             .replace(/\n/g, '<br/>');
-                        results.prepend(item);
                         input.value = '';
                     }
                 });
