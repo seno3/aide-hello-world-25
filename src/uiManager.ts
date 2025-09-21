@@ -1545,12 +1545,17 @@ export class UIManager {
                     const score_pct = Math.round((result.score || 0) * 100);
                     const verdict = result.verdict || 'incorrect';
                     
-                    if (verdict === 'correct' || score_pct >= 70) {
+                    // Only show "correct" and give full credit if score is 70% or above
+                    let displayVerdict = verdict;
+                    if (score_pct >= 70) {
+                        displayVerdict = 'correct';
                         score++;
                         playSuccessAnimation();
-                    } else if (verdict === 'partial' || score_pct >= 30) {
+                    } else if (score_pct >= 30) {
+                        displayVerdict = 'partial';
                         playSuccessAnimation(); // Still positive feedback for partial credit
                     } else {
+                        displayVerdict = 'incorrect';
                         playErrorAnimation();
                     }
                     
@@ -1559,7 +1564,7 @@ export class UIManager {
                     if (explanation) {
                         const feedbackDiv = document.createElement('div');
                         feedbackDiv.className = 'ai-feedback';
-                        feedbackDiv.innerHTML = '<strong>AI Evaluation:</strong> ' + verdict.toUpperCase() + ' (' + score_pct + '%)<br/>' + (result.feedback || '');
+                        feedbackDiv.innerHTML = '<strong>AI Evaluation:</strong> ' + displayVerdict.toUpperCase() + ' (' + score_pct + '%)<br/>' + (result.feedback || '');
                         explanation.appendChild(feedbackDiv);
                         explanation.classList.add('show');
                     }

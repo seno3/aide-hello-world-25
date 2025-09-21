@@ -353,9 +353,14 @@ REFERENCE: ${req.correctAnswer}
 
 STUDENT: ${req.userAnswer}
 
-Be generous - if the student shows understanding of the core concept, give partial or full credit even if wording differs. Focus on meaning over exact phrasing.
+SCORING GUIDELINES:
+- Score 0.7-1.0: Shows good understanding (use "correct" verdict)
+- Score 0.3-0.69: Shows partial understanding (use "partial" verdict)  
+- Score 0-0.29: Minimal/no understanding (use "incorrect" verdict)
 
-Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": "brief encouraging comment"}`;
+Be encouraging but honest. Don't say "amazing work" for low scores.
+
+Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": "appropriate encouraging comment"}`;
     }
 
     /**
@@ -614,11 +619,19 @@ Return JSON: {"score": 0-1, "verdict": "correct|partial|incorrect", "feedback": 
             score = 0.3;
         }
         
-        const feedback = verdict === 'correct' 
-            ? 'Great job! Your answer captures the key concepts.' 
-            : verdict === 'partial' 
-            ? 'Good effort! You got some key points right.' 
-            : 'Keep trying! Think about the main concepts.';
+        // More appropriate feedback based on actual score
+        let feedback = '';
+        const scorePercent = Math.round(score * 100);
+        
+        if (scorePercent >= 70) {
+            feedback = 'Great job! Your answer captures the key concepts.';
+        } else if (scorePercent >= 30) {
+            feedback = 'Good effort! You got some key points right.';
+        } else if (scorePercent > 0) {
+            feedback = 'Keep trying! You\'re on the right track but need more detail.';
+        } else {
+            feedback = 'Keep trying! Think about the main concepts and try again.';
+        }
             
         return { score, verdict, feedback };
     }
