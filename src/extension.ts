@@ -391,6 +391,30 @@ function setupPokeFeature(
                         hasTargetPosition: !!targetPosition,
                         targetPosition: targetPosition ? `${targetPosition.line}:${targetPosition.character}` : 'none'
                     });
+                    
+                    // Add a small delay to allow modal to fully close and editor to regain focus
+                    console.log('🔴 Waiting 200ms for modal to fully close...');
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    console.log('🔴 Attempting paste after delay...');
+                    
+                    // Try to explicitly open and focus the target document first
+                    if (targetDocumentUri) {
+                        try {
+                            console.log('🔴 Explicitly opening target document...');
+                            const targetDoc = await vscode.workspace.openTextDocument(targetDocumentUri);
+                            await vscode.window.showTextDocument(targetDoc, { 
+                                preserveFocus: false,
+                                selection: targetPosition ? new vscode.Range(targetPosition, targetPosition) : undefined
+                            });
+                            console.log('🔴 Target document opened and focused');
+                            
+                            // Small additional delay after focusing
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        } catch (error) {
+                            console.log('🔴 Error opening target document:', error);
+                        }
+                    }
+                    
                     const pasteSuccess = await pasteTextToEditor(clipboardText, targetDocumentUri, targetPosition);
                     if (pasteSuccess) {
                         vscode.window.showInformationMessage('Code pasted successfully! 📋');
