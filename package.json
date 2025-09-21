@@ -30,7 +30,13 @@
       {
         "command": "codeQuizExplainer.quizMe",
         "key": "ctrl+shift+q",
-        "mac": "cmd+shift+q",
+        "mac": "cmd+alt+q",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "codeQuizExplainer.explainCode",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+alt+e",
         "when": "editorTextFocus"
       }
     ],

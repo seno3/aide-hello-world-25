@@ -382,10 +382,10 @@ export class UIManager {
     private getModernStyles(): string {
         return `
             :root {
-                --primary-color: #6366f1;
-                --primary-light: #818cf8;
-                --primary-dark: #4f46e5;
-                --secondary-color: #ec4899;
+                --primary-color: #d4af37;
+                --primary-light: #e6c65c;
+                --primary-dark: #b8860b;
+                --secondary-color: #996515;
                 --success-color: #10b981;
                 --warning-color: #f59e0b;
                 --error-color: #ef4444;
@@ -393,7 +393,7 @@ export class UIManager {
                 --glass-border: rgba(255, 255, 255, 0.2);
                 --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.1);
                 --shadow-heavy: 0 20px 60px rgba(0, 0, 0, 0.2);
-                --gradient-primary: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+                --gradient-primary: linear-gradient(135deg, #d4af37, #b8860b);
                 --gradient-success: linear-gradient(135deg, var(--success-color), #059669);
                 --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
             }
@@ -406,7 +406,9 @@ export class UIManager {
 
             body {
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: radial-gradient(1200px 800px at 10% 10%, rgba(212, 175, 55, 0.08), transparent 60%),
+                            radial-gradient(1200px 800px at 90% 20%, rgba(184, 134, 11, 0.08), transparent 60%),
+                            #0a0a0a;
                 color: var(--vscode-foreground, #ffffff);
                 min-height: 100vh;
                 overflow-x: hidden;
@@ -722,7 +724,7 @@ export class UIManager {
 
             .option-card.selected {
                 border-color: var(--primary-color);
-                background: rgba(99, 102, 241, 0.2);
+                background: rgba(212, 175, 55, 0.2);
                 transform: translateY(-3px);
             }
 
@@ -855,12 +857,12 @@ export class UIManager {
             .primary-btn {
                 background: var(--gradient-primary);
                 color: white;
-                box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+                box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35);
             }
 
             .primary-btn:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(99, 102, 241, 0.6);
+                box-shadow: 0 8px 25px rgba(212, 175, 55, 0.55);
             }
 
             .primary-btn:active {
@@ -872,9 +874,9 @@ export class UIManager {
             }
 
             @keyframes pulse {
-                0% { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
-                50% { box-shadow: 0 4px 25px rgba(99, 102, 241, 0.8); }
-                100% { box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+                0% { box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35); }
+                50% { box-shadow: 0 4px 25px rgba(212, 175, 55, 0.7); }
+                100% { box-shadow: 0 4px 15px rgba(212, 175, 55, 0.35); }
             }
 
             .btn-ripple {
@@ -1060,7 +1062,7 @@ export class UIManager {
                 color: white;
                 font-size: 1.5rem;
                 cursor: pointer;
-                box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+                box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 display: flex;
                 align-items: center;
@@ -1069,7 +1071,7 @@ export class UIManager {
 
             .fab:hover {
                 transform: scale(1.1);
-                box-shadow: 0 8px 30px rgba(99, 102, 241, 0.6);
+                box-shadow: 0 8px 30px rgba(212, 175, 55, 0.55);
             }
 
             .fab-icon {
