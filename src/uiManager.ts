@@ -284,7 +284,9 @@ export class UIManager {
      * Generate modern HTML for explanation panel
      */
     private generateModernExplanationHTML(explanation: CodeExplanation, originalCode: string): string {
-        const selectedLineCount = originalCode ? originalCode.split('\n').length : 0;
+        const selectedLineCount = originalCode
+            ? originalCode.replace(/\n$/, '').split('\n').length
+            : 0;
         return `
         <!DOCTYPE html>
         <html lang="en">
@@ -1914,9 +1916,11 @@ export class UIManager {
                 const counters = document.querySelectorAll('.stat-number');
                 counters.forEach(counter => {
                     const raw = counter.dataset.target;
-                    const target = Number(raw);
-                    if (!Number.isFinite(target) || target <= 0) {
-                        counter.textContent = String(Math.max(0, target || 0));
+                    let target = Number(raw);
+                    if (!Number.isFinite(target)) target = 0;
+                    // Defensive: if zero, still display 0 immediately
+                    if (target <= 0) {
+                        counter.textContent = '0';
                         return;
                     }
                     let current = 0;
