@@ -43,14 +43,16 @@ export class CodeExplainer {
      * Main method to generate explanations for code
      * Uses AI when configured, falls back to rule-based analysis
      */
-    async explainCode(code: string): Promise<CodeExplanation> {
+    async explainCode(code: string, fileExtension?: string): Promise<CodeExplanation> {
         console.log('Generating explanation for code:', code.substring(0, 100) + '...');
         
         try {
             // Get user preferences
             const config = vscode.workspace.getConfiguration('codeQuizExplainer');
             const detailLevel = config.get('explanationDetail', 'detailed') as 'basic' | 'detailed' | 'expert';
-            const language = this.detectLanguage(code);
+            const language = this.detectLanguageFromExtension(fileExtension) || this.detectLanguage(code);
+            
+            console.log(`Detected language: ${language} (from extension: ${fileExtension})`);
             
             // Try AI generation first
             const aiExplanation = await this.aiService.generateExplanation({
@@ -65,14 +67,16 @@ export class CodeExplainer {
             console.log('AI explanation failed, using fallback:', error);
             
             // Fallback to rule-based analysis
-            return this.generateFallbackExplanation(code);
+            const language = this.detectLanguageFromExtension(fileExtension) || this.detectLanguage(code);
+            return this.generateFallbackExplanation(code, language);
         }
     }
+
 
     /**
      * Fallback explanation generation using rule-based approach
      */
-    private generateFallbackExplanation(code: string): CodeExplanation {
+    private generateFallbackExplanation(code: string, language: string): CodeExplanation {
         // Parse the code into lines and analyze each one
         const lines = code.split('\n');
         const lineExplanations = this.analyzeLines(lines);
@@ -397,6 +401,112 @@ export class CodeExplainer {
             return 'Go';
         }
         return 'JavaScript'; // Default fallback
+    }
+
+    /**
+     * Detect language from file extension (more reliable than pattern matching)
+     */
+    private detectLanguageFromExtension(extension?: string): string | null {
+        if (!extension) return null;
+        
+        const ext = extension.toLowerCase();
+        
+        switch (ext) {
+            case 'js':
+            case 'jsx':
+            case 'mjs':
+                return 'JavaScript';
+            
+            case 'ts':
+            case 'tsx':
+                return 'TypeScript';
+            
+            case 'py':
+            case 'pyw':
+            case 'pyc':
+                return 'Python';
+            
+            case 'java':
+                return 'Java';
+            
+            case 'cs':
+                return 'C#';
+            
+            case 'cpp':
+            case 'cc':
+            case 'cxx':
+            case 'c++':
+                return 'C++';
+            
+            case 'c':
+            case 'h':
+                return 'C';
+            
+            case 'go':
+                return 'Go';
+            
+            case 'rs':
+                return 'Rust';
+            
+            case 'php':
+                return 'PHP';
+            
+            case 'rb':
+                return 'Ruby';
+            
+            case 'swift':
+                return 'Swift';
+            
+            case 'kt':
+            case 'kts':
+                return 'Kotlin';
+            
+            case 'scala':
+                return 'Scala';
+            
+            case 'r':
+                return 'R';
+            
+            case 'dart':
+                return 'Dart';
+            
+            case 'lua':
+                return 'Lua';
+            
+            case 'pl':
+            case 'pm':
+                return 'Perl';
+            
+            case 'sh':
+            case 'bash':
+                return 'Shell';
+            
+            case 'ps1':
+                return 'PowerShell';
+            
+            case 'sql':
+                return 'SQL';
+            
+            case 'html':
+            case 'htm':
+                return 'HTML';
+            
+            case 'css':
+                return 'CSS';
+            
+            case 'json':
+                return 'JSON';
+            
+            case 'xml':
+                return 'XML';
+            
+            case 'yaml':
+            case 'yml':
+                return 'YAML';
+            
+            default:
+                return null; // Unknown extension
+        }
     }
 }
 
